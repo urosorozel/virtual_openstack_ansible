@@ -1,0 +1,44 @@
+---
+- name: Create network_info.json
+  template:
+    src: network_info.json.j2
+    dest: "{{ build_config_dir }}/{{ vm.build_name }}/{{ item }}/network_info.json"
+  with_items:
+    - "openstack/2012-08-10"
+    - "openstack/latest"
+  when: build_network_info
+
+- name: Create the network configuration folders
+  file:
+    path: "{{ _build_content_path }}{{ item }}"
+    state: directory
+    recurse: yes
+  with_items:
+    - "{{ build_os_network_path }}"
+
+#- name: Setup resolver file resolv.conf 
+#  template:
+#    src: "resolv.conf.j2"
+#    dest: "{{ _build_content_path }}/etc/resolv.conf"
+#  when: vm.build_resolv is defined and vm.build_resolv
+
+#- name: Setup static hosts file
+#  template:
+#    src: "hosts.j2"
+#    dest: "{{ _build_content_path }}/etc/hosts"
+#  when: vm.build_hosts is defined and vm.build_hosts
+
+- name: Setup network/interfaces for Debian
+  template: 
+    src: "interfaces.j2"
+    dest: "{{ _build_content_path }}/etc/network/interfaces"
+  with_items: "{{ vm.build_network_device_list }}"
+  when: vm.build_os_family == 'Debian'
+
+#- name: Setup all defined devices
+#  template:
+#    src: "device_{{ vm.build_os_family }}.j2"
+#    dest: "{{ _build_content_path }}/{{ build_os_network_path }}/{{ item.device }}.cfg"
+#  with_items: "{{ vm.build_network_device_list }}"
+
+

@@ -1,0 +1,156 @@
+---
+  - name: Configure libvirt
+    hosts: localhost
+    user: root
+    vars:
+      libvirt__networks:
+        - name: 'vm_host_a'
+          type: 'dnsmasq_dns'
+          bridge: 'vm_host_a'
+          addresses: [ '10.10.10.1/24' ]
+          forward: True
+          dhcp: False
+          dns:
+            dns_public_ip: 8.8.8.8
+            dns_domain_name: rpccpa.net
+            dns_private_ip: 10.184.227.134 
+        - name: 'vm_mgmt_a'
+          type: 'forward'
+          bridge: 'vm_mgmt_a'
+          addresses: [ '10.10.20.1/24' ]
+          dhcp: False
+        - name: 'vm_ironic_a'
+          type: 'forward'
+          bridge: 'vm_ironic_a'
+          addresses: [ '10.10.40.1/24' ]
+          dhcp: False
+        - name: 'vm_public_a'
+          type: 'forward'
+          bridge: 'vm_public_a'
+          addresses: [ '10.110.10.1/24' ]
+          dhcp: False
+        - name: 'vm_host_b'
+          type: 'dnsmasq_dns'
+          bridge: 'vm_host_b'
+          addresses: [ '10.20.10.1/24' ]
+          dns:
+            dns_public_ip: 8.8.8.8
+            dns_domain_name: rpccpb.net
+            dns_private_ip: 10.184.227.134
+          forward: True
+          dhcp: False
+        - name: 'vm_mgmt_b'
+          type: 'forward'
+          bridge: 'vm_mgmt_b'
+          addresses: [ '10.20.20.1/24' ]
+          dhcp: False
+        - name: 'vm_ironic_b'
+          type: 'forward'
+          bridge: 'vm_ironic_b'
+          addresses: [ '10.20.40.1/24' ]
+          dhcp: False
+        - name: 'vm_public_b'
+          type: 'forward'
+          bridge: 'vm_public_b'
+          addresses: [ '10.120.10.1/24' ]
+          dhcp: False
+        - name: 'vm_host_c'
+          type: 'dnsmasq_dns'
+          bridge: 'vm_host_c'
+          addresses: [ '10.30.10.1/24' ]
+          dns:
+            dns_public_ip: 8.8.8.8
+            dns_domain_name: rpccpc.net
+            dns_private_ip: 10.184.227.134
+          forward: True
+          dhcp: False
+        - name: 'vm_mgmt_c'
+          type: 'forward'
+          bridge: 'vm_mgmt_c'
+          addresses: [ '10.30.20.1/24' ]
+          dhcp: False
+        - name: 'vm_ironic_c'
+          type: 'forward'
+          bridge: 'vm_ironic_c'
+          addresses: [ '10.30.40.1/24' ]
+          dhcp: False
+        - name: 'vm_public_c'
+          type: 'forward'
+          bridge: 'vm_public_c'
+          addresses: [ '10.130.10.1/24' ]
+          dhcp: False
+        - name: 'vm_host_d'
+          type: 'dnsmasq_dns'
+          bridge: 'vm_host_d'
+          addresses: [ '10.40.10.1/24' ]
+          dns:
+            dns_public_ip: 8.8.8.8
+            dns_domain_name: rpccpd.net
+            dns_private_ip: 10.184.227.134
+          forward: True
+          dhcp: False
+        - name: 'vm_mgmt_d'
+          type: 'forward'
+          bridge: 'vm_mgmt_d'
+          addresses: [ '10.40.20.1/24' ]
+          dhcp: False
+        - name: 'vm_ironic_d'
+          type: 'forward'
+          bridge: 'vm_ironic_d'
+          addresses: [ '10.40.40.1/24' ]
+          dhcp: False
+        - name: 'vm_public_d'
+          type: 'forward'
+          bridge: 'vm_public_d'
+          addresses: [ '10.140.10.1/24' ]
+          dhcp: False
+      iptable_rules:
+        - name: vm_mgmt_a
+          route: 10.10.40.0/24
+        - name: vm_ironic_a
+          route: 10.10.20.0/24
+        - name: vm_mgmt_b
+          route: 10.20.40.0/24
+        - name: vm_ironic_b
+          route: 10.20.20.0/24
+        - name: vm_mgmt_c
+          route: 10.30.40.0/24
+        - name: vm_ironic_c
+          route: 10.30.20.0/24
+        - name: vm_mgmt_d
+          route: 10.40.40.0/24
+        - name: vm_ironic_d
+          route: 10.40.20.0/24
+      libvirt__pools:
+        - name: 'pool_a'
+          type: 'dir'
+          path: '/data/pool_a'
+        - name: 'pool_b'
+          type: 'dir'
+          path: '/data/pool_b'
+        - name: 'pool_c'
+          type: 'dir'
+          path: '/data/pool_c'
+        - name: 'pool_d'
+          type: 'dir'
+          path: '/data/pool_d'
+
+    roles:
+      - role: debops.libvirt
+
+    tasks:
+      - name: Add OUT interface iptable rules for vm_ironic_x <> vm_mgmt_x
+        iptables:
+          chain: FORWARD
+          out_interface: "{{item.name}}"
+          destination: "{{item.route}}"
+          jump: ACCEPT
+        with_items: "{{iptable_rules}}"
+
+      - name: Add IN interface iptable rules for vm_ironic_x <> vm_mgmt_x
+        iptables:
+          chain: FORWARD
+          in_interface: "{{item.name}}"
+          source: "{{item.route}}"
+          jump: ACCEPT
+        with_items: "{{iptable_rules}}"

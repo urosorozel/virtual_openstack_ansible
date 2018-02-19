@@ -1,0 +1,245 @@
+- name: Post deploy
+  hosts: utility_container
+  tasks:
+    - name: Update openrc for ironic API
+      shell: |
+        echo "# Define ironic API to support resource classes" >> /root/openrc
+        echo "export IRONIC_API_VERSION=latest" >> /root/openrc
+        echo "export OS_BAREMETAL_API_VERSION=1.34" >> /root/openrc
+
+    - name: Copy post deploy play to utility  nodes
+      copy:
+        src: post/{{ item }}
+        dest: /root/{{ item }}
+      with_items:
+        - enroll_ironic.py
+        - ironic_nodes.yml
+        - requirements.txt
+        - post_deploy.sh
+
+    - name: Install placement Openstack client
+      git:
+        repo: https://github.com/openstack/osc-placement.git
+        dest: /root/osc-placement
+        force: yes
+
+    - name: Run setup.py install
+      shell: |
+        python /root/osc-placement/setup.py install
+      args:
+        chdir: /root/osc-placement
+  
+    - name: Install virtualenv
+      pip:
+        name: virtualenv
+        extra_args: --isolated
+
+    - name: pip install shade for ansible openstack module support
+      pip:
+        name: shade
+
+    - name: Install requirements for enroll script
+      pip:
+        requirements: /root/requirements.txt
+        virtualenv: /root/enroll
+        extra_args: --isolated
+
+- name: Post deploy on ironic_conductor
+  hosts: ironic_conductor
+  tasks:
+    - name: "Update cleaning network"
+      ini_file:
+        section: neutron
+        option: cleaning_network_uuid
+        value: public
+        path: /etc/ironic/ironic.conf
+
+    - name: "Update ironic api_url, fixes issue with keystone auth plugin"
+      ini_file:
+        section: conductor
+        option: api_url
+        value: http://10.30.20.9:6385
+        path: /etc/ironic/ironic.conf
+
+    - name: "Update ironic for console over sirial"
+      ini_file:
+        section: pxe
+        option: pxe_append_params
+        value: 'ipa-debug=1 systemd.journald.forward_to_console=yes console=tty0 console=ttyS0 coreos.autologin'
+        path: /etc/ironic/ironic.conf
+
+    - name: "Restart ironic conductor"
+      service:
+        name: ironic-conductor
+        state: restarted
+
+- name: Post deploy on ironic_compute
+  hosts: ironic_compute
+  tasks:
+    - name: "Disable baremetal filters"
+      ini_file:
+        section: filter_scheduler
+        option: use_baremetal_filters
+        value: False
+        path: /etc/nova/nova.conf
+
+    - name: "Add AggregateInstanceExtraSpecsFilter"
+      ini_file:
+        section: filter_scheduler
+        option: enabled_filters
+        value: 'AggregateInstanceExtraSpecsFilter,RetryFilter,AvailabilityZoneFilter,RamFilter,ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,ServerGroupAffinityFilter,AggregateCoreFilter,AggregateDiskFilter'
+        path: /etc/nova/nova.conf
+
+    - name: "Restart nova scheduler"
+      service:
+        name: nova-scheduler
+        state: restarted
+
+- name: Post deploy on nova_scheduler_container
+  hosts: nova_scheduler_container
+  tasks:
+    - name: "Add AggregateInstanceExtraSpecsFilter"
+      ini_file:
+        section: filter_scheduler
+        option: enabled_filters
+        value: 'AggregateInstanceExtraSpecsFilter,RetryFilter,AvailabilityZoneFilter,RamFilter,ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,ServerGroupAffinityFilter,AggregateCoreFilter,AggregateDiskFilter'
+        path: /etc/nova/nova.conf
+
+    - name: "Restart nova scheduler"
+      service:
+        name: nova-scheduler
+        state: restarted
+
+- name: Post deploy
+  hosts: utility_container[0]
+  tags: ironic_aggregate
+  tasks:
+    - name: Get ironic hosts for baremetal server aggregate
+      shell: |
+        . /root/openrc;openstack host list| grep internal | grep ironic-compute | awk '{ print $2}'
+      args:
+        chdir: /root
+      register: ironic_hosts
+
+    - name: Add host aggregate for baremetal server
+      os_nova_host_aggregate:
+        cloud: default
+        state: present
+        name: baremetal-hosts
+        hosts:  "{{ ironic_hosts.stdout_lines }}"
+        validate_certs: False
+
+    - name: Add host aggregate for virtual servers
+      os_nova_host_aggregate:
+        cloud: default
+        state: present
+        name: virtual-hosts
+        hosts: 
+          - compute01-c
+          - compute02-c
+        validate_certs: False
+
+    - name: Add public network
+      os_network:
+        cloud: default
+        state: present
+        name: public
+        provider_physical_network: ironic
+        provider_network_type: flat
+        external: true
+        validate_certs: False
+
+    - name: Add public subnet
+      os_subnet:
+        cloud: default
+        state: present
+        network_name: public
+        name: public-subnet
+        cidr: 10.30.40.0/24
+        dns_nameservers:
+           - 8.8.8.7
+           - 8.8.8.8
+        validate_certs: False
+
+
+    - name: Add private network
+      os_network:
+        cloud: default
+        state: present
+        name: private
+        #provider_physical_network: flat
+        #provider_network_type: flat
+        validate_certs: False
+
+
+    - name: Add private subnet
+      os_subnet:
+        cloud: default
+        state: present
+        network_name: private
+        name: private-subnet
+        cidr: 192.168.74.0/28
+        enable_dhcp: True
+        #gateway_ip: 192.168.74.1
+        dns_nameservers:
+           - 8.8.8.7
+           - 8.8.8.8
+        validate_certs: False
+        # router module fails on second run :/
+        # https://github.com/ansible/ansible/issues/29903
+        #register: subnet_added
+
+    - name: Add router to route private to public
+      os_router:
+        cloud: default
+        state: present
+        name: router1
+        project: admin
+        network: public
+        validate_certs: False
+        external_fixed_ips:
+          - subnet: public-subnet
+            ip: 10.30.40.19
+        interfaces:
+          - private-subnet
+      ignore_errors: yes
+#      when: subnet_added.changed
+
+#    - name: Get admin default SG id
+#      shell: |
+#        . /root/openrc;openstack security group list | grep $(openstack project list | grep admin | awk '{print $2}') | grep default | awk '{print $2}'
+#      register: sec_group
+    - name: Create SG for servers ssh/icmp
+      os_security_group:
+        cloud: default
+        validate_certs: False
+        state: present
+        name: server_ssh_icmp
+        description: security group for servers
+
+    - name: Add SSH rule to default SG
+      os_security_group_rule:
+        cloud: default
+        validate_certs: False
+        security_group: server_ssh_icmp
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+
+    - name: Add ICMP rule to default SG
+      os_security_group_rule:
+        cloud: default
+        validate_certs: False
+        security_group: server_ssh_icmp
+        protocol: icmp
+        remote_ip_prefix: 0.0.0.0/0
+
+
+- name: Post deploy
+  hosts: utility_container[0]
+  tasks:
+    - name: Run post_deploy.sh
+      shell: |
+        bash post_deploy.sh
+      args:
+        chdir: /root/

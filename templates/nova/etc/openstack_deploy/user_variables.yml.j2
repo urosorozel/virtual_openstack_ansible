@@ -1,0 +1,423 @@
+---
+# Copyright 2014, Rackspace US, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+###
+### This file contains commonly used overrides for convenience. Please inspect
+### the defaults for each role to find additional override options.
+###
+
+## Common Ceilometer Overrides
+# ceilometer_db_type: mongodb
+# ceilometer_db_ip: localhost
+# ceilometer_db_port: 27017
+
+## Common Override to enable Ceilometer for each service.
+## By default all service are *not* enabled.
+# swift_ceilometer_enabled: True
+# heat_ceilometer_enabled: True
+# cinder_ceilometer_enabled: True
+# glance_ceilometer_enabled: True
+# nova_ceilometer_enabled: True
+# neutron_ceilometer_enabled: True
+# keystone_ceilometer_enabled: True
+
+## Common Aodh Overrides
+# aodh_db_type: mongodb
+# aodh_db_ip: localhost
+# aodh_db_port: 27017
+
+## Common Glance Overrides
+# Set glance_default_store to "swift" if using Cloud Files or swift backend
+# or "rbd" if using ceph backend; the latter will trigger ceph to get
+# installed on glance. If using a file store, a shared file store is
+# recommended. See the OpenStack-Ansible install guide and the OpenStack
+# documentation for more details.
+#glance_default_store: file
+{% raw %}
+glance_default_store: swift
+glance_swift_store_auth_address: '{{ keystone_service_internalurl }}'
+glance_swift_store_container: glance_images
+glance_swift_store_endpoint_type: internalURL
+glance_swift_store_key: '{{ glance_service_password }}'
+glance_swift_store_region: RegionOne
+glance_swift_store_user: 'service:{{ glance_service_user_name }}'
+{% endraw %}
+
+## Ceph pool name for Glance to use
+# glance_rbd_store_pool: images
+# glance_rbd_store_chunk_size: 8
+
+## Common Nova Overrides
+# When nova_libvirt_images_rbd_pool is defined, ceph will be installed on nova
+# hosts.
+# nova_libvirt_images_rbd_pool: vms
+
+# If you wish to change the dhcp_domain configured for both nova and neutron
+# dhcp_domain: openstacklocal
+
+## Common Glance Overrides when using a Swift back-end
+# By default when 'glance_default_store' is set to 'swift' the playbooks will
+# expect to use the Swift back-end that is configured in the same inventory.
+# If the Swift back-end is not in the same inventory (ie it is already setup
+# through some other means) then these settings should be used.
+#
+# NOTE: Ensure that the auth version matches your authentication endpoint.
+#
+# NOTE: If the password for glance_swift_store_key contains a dollar sign ($),
+# it must be escaped with an additional dollar sign ($$), not a backslash. For
+# example, a password of "super$ecure" would need to be entered as
+# "super$$ecure" below.  See Launchpad Bug #1259729 for more details.
+#
+# glance_swift_store_auth_version: 3
+# glance_swift_store_auth_address: "https://some.auth.url.com"
+# glance_swift_store_user: "OPENSTACK_TENANT_ID:OPENSTACK_USER_NAME"
+# glance_swift_store_key: "OPENSTACK_USER_PASSWORD"
+# glance_swift_store_container: "NAME_OF_SWIFT_CONTAINER"
+# glance_swift_store_region: "NAME_OF_REGION"
+
+## Common Ceph Overrides
+# ceph_mons:
+#   - 10.16.5.40
+#   - 10.16.5.41
+#   - 10.16.5.42
+
+{% raw %}
+## Custom Ceph Configuration File (ceph.conf)
+# By default, your deployment host will connect to one of the mons defined above to
+# obtain a copy of your cluster's ceph.conf.  If you prefer, uncomment ceph_conf_file
+# and customise to avoid ceph.conf being copied from a mon.
+#ceph_conf_file: |
+#  [global]
+#  fsid = 00000000-1111-2222-3333-444444444444
+#  mon_initial_members = mon1.example.local,mon2.example.local,mon3.example.local
+#  mon_host = 10.16.5.40,10.16.5.41,10.16.5.42
+#  # optionally, you can use this construct to avoid defining this list twice:
+#  (# # mon_host = {{ ceph_mons|join(',') }} #}
+#  auth_cluster_required = cephx
+#  auth_service_required = cephx
+{% endraw %}
+
+
+# By default, openstack-ansible configures all OpenStack services to talk to
+# RabbitMQ over encrypted connections on port 5671. To opt-out of this default,
+# set the rabbitmq_use_ssl variable to 'false'. The default setting of 'true'
+# is highly recommended for securing the contents of RabbitMQ messages.
+rabbitmq_use_ssl: false
+
+
+## Additional pinning generator that will allow for more packages to be pinned as you see fit.
+## All pins allow for package and versions to be defined. Be careful using this as versions
+## are always subject to change and updates regarding security will become your problem from this
+## point on. Pinning can be done based on a package version, release, or origin. Use "*" in the
+## package name to indicate that you want to pin all package to a particular constraint.
+# apt_pinned_packages:
+#   - { package: "lxc", version: "1.0.7-0ubuntu0.1" }
+#   - { package: "libvirt-bin", version: "1.2.2-0ubuntu13.1.9" }
+#   - { package: "rabbitmq-server", origin: "www.rabbitmq.com" }
+#   - { package: "*", release: "MariaDB" }
+
+
+## Environment variable settings
+# This allows users to specify the additional environment variables to be set
+# which is useful in setting where you working behind a proxy. If working behind
+# a proxy It's important to always specify the scheme as "http://". This is what
+# the underlying python libraries will handle best. This proxy information will be
+# placed both on the hosts and inside the containers.
+
+## Example environment variable setup:
+
+# ,10.33.33.3 is not accessible after readdressing removed from no_proxy
+
+proxy_env_url: "{{ http_proxy }}"
+no_proxy_env: "localhost,127.0.0.1,.prod.cba,.openstack.local,.local.lan,{{ VIPs['external_address'] }},{{ VIPs['internal_address'] }},{% for host in groups.infra %}{{ hostvars[ host ].Networking.host.address }},{% endfor %}{% raw %}{% for host in groups['elasticsearch_container']+groups['all_containers'] %}{{ hostvars[host]['container_address'] }}{% if not loop.last %},{% endif %}{% endfor %}"
+global_environment_variables:
+  http_proxy: "{{ proxy_env_url }}"
+  https_proxy: "{{ proxy_env_url }}"
+  HTTP_PROXY: "{{ proxy_env_url }}"
+  HTTPS_PROXY: "{{ proxy_env_url }}"
+  NO_PROXY: "{{ no_proxy_env }}"
+  PIP_CERT: "/etc/ssl/certs/ca-certificates.crt"
+{% endraw %}
+
+# haproxy_ssl will enable SSL which terminates at the haproxy
+{% if haproxy_ssl == true %}
+haproxy_ssl: true
+
+haproxy_user_ssl_ca_cert: /opt/ssl/ProdIssuingCA1.cer
+haproxy_user_ssl_cert: /opt/ssl/haproxy_ssl.cer
+haproxy_user_ssl_key: /opt/ssl/haproxy_ssl.key
+
+keystone_service_publicuri_proto: "https"
+
+horizon_user_ssl_ca_cert: /opt/ssl/ProdIssuingCA1.cer
+horizon_user_ssl_cert: /opt/ssl/haproxy_ssl.cer
+horizon_user_ssl_key: /opt/ssl/haproxy_ssl.key
+{% endif %}
+
+# openStack_ssl will enable internal SSL with self signed certs
+{% if openstack_ssl ==  true %}
+keystone_ssl: true
+keystone_service_adminuri_insecure: true
+keystone_service_internaluri_insecure: true
+keystone_rabbitmq_use_ssl: true
+keystone_external_ssl: true
+nova_external_ssl: true
+keystone_service_adminuri_proto: "https"
+keystone_service_internaluri_proto: "https"
+keystone_service_publicuri_proto: "https"
+{% endif %}
+
+{% if lxc_container_fs_size is defined %}
+# Additional variables 
+lxc_container_fs_size: "{{ lxc_container_fs_size }}"
+{% endif %}
+
+{% if tempest_plugins is defined %}
+tempest_plugins:
+{% for plugin in tempest_plugins %}
+  - name: {{ plugin.name }}
+    repo: {{ plugin.repo }}
+    branch: {{ plugin.branch }}
+{% endfor %}
+{% endif %}
+
+tempest_swift_discoverable_apis:
+  - bulk
+  - object
+  - container_quotas
+  - slo
+  - tempurl
+
+tempest_swift_container_sync: {{ tempest_swift_container_sync }}
+
+cirros_tgz_url: "{{ cirros_tgz_url }}"
+cirros_img_url: "{{ cirros_img_url }}"
+
+## SSH connection wait time
+# If an increased delay for the ssh connection check is desired,
+# uncomment this variable and set it appropriately.
+{% if is_virt_environment is defined and is_virt_environment %}
+ssh_delay: 10
+{% else %}
+ssh_delay: 60
+{% endif %}
+
+## HAProxy
+# Uncomment this to disable keepalived installation (cf. documentation)
+haproxy_use_keepalived: True
+#
+# HAProxy Keepalived configuration (cf. documentation)
+# Make sure that this is set correctly according to the CIDR used for your
+# internal and external addresses.
+haproxy_keepalived_external_vip_cidr: "{{ VIPs['external_address'] }}/32"
+haproxy_keepalived_internal_vip_cidr: "{{ VIPs['internal_address'] }}/32"
+haproxy_keepalived_external_interface: ens3
+haproxy_keepalived_internal_interface: ens4
+
+# By default, OSA configures keepalived to ping one of the root DNS servers
+# to determine whether a node has network connectivity.  Since we can't ping
+# externally, we need something closer.
+keepalived_ping_address: {{ Networking.host.gateway }}
+
+# Defines the default VRRP id used for keepalived with haproxy.
+# Overwrite it to your value to make sure you don't overlap
+# with existing VRRPs id on your network. Default is 10 for the external and 11 for the
+# internal VRRPs
+haproxy_keepalived_external_virtual_router_id: {{ VIPs['external_router_id'] }}
+haproxy_keepalived_internal_virtual_router_id: {{ VIPs['internal_router_id'] }}
+
+# Defines the VRRP master/backup priority. Defaults respectively to 100 and 20
+# haproxy_keepalived_priority_master:
+# haproxy_keepalived_priority_backup:
+
+pip_get_pip_options: "--cert /etc/ssl/certs/ca-certificates.crt"
+pip_install_options: "--cert /etc/ssl/certs/ca-certificates.crt"
+
+lxc_container_cache_files:
+  - src: "/etc/ssl/certs/ca-certificates.crt"
+    dest: "/etc/ssl/certs/ca-certificates.crt"
+  - src: "/usr/local/share/ca-certificates/cba-ca.crt"
+    dest: "/usr/local/share/ca-certificates/cba-ca.crt"
+
+# horizon_exstension role gets cloned from upstream master
+horizon_extensions_git_repo: http://github.com/cfarquhar/rpc-openstack
+horizon_extensions_git_install_branch: mitaka_custom
+horizon_extensions_git_package_name: horizon-extensions
+horizon_extensions_git_install_fragments: "subdirectory=horizon-extensions/"
+
+#repo_build_pip_default_index: "http://rpc-repo.rackspace.com/pools"
+#repo_pip_default_index: "http://rpc-repo.rackspace.com/pools"
+
+# These are disabled due to testing #106
+#repo_build_pip_default_index: "http://pypi.python.org/simple"
+#repo_build_pip_extra_index: "http://pypi.python.org/simple"
+#repo_pip_default_index: "http://pypi.python.org/simple"
+
+# We want to use au.archive.ubuntu.com for speed, but it's broken as of 2016-04-27
+lxc_container_template_main_apt_repo: "http://archive.ubuntu.com/ubuntu"
+lxc_container_template_security_apt_repo: "http://archive.ubuntu.com/ubuntu"
+
+#lxc_container_caches:
+#  - url: "{{ lxc_container_caches_url }}"
+#    name: "trusty.tgz"
+#    sha256sum: "56c6a6e132ea7d10be2f3e8104f47136ccf408b30e362133f0dc4a0a9adb4d0c"
+#    chroot_path: trusty/rootfs-amd64
+
+nova_virt_type: ironic
+
+# This can be removed when/if LP# 1574936 is fixed
+lxc_cache_commands:
+  - chgrp syslog /var/log
+  - rm -rf /var/lib/apt/lists/*
+  - apt-get update
+  - apt-get -y upgrade
+  - apt-get -y install python2.7
+  - rm -f /usr/bin/python
+  - ln -s /usr/bin/python2.7 /usr/bin/python
+
+pip_upstream_repo_url: http://bootstrap.pypa.io
+
+# Turning this off may cause clients to connect slowly and thus cause 
+# the backend to fail haproxy health checks
+galera_cluster_cnf_overrides:
+  mysqld:
+    skip-name-resolve: ON
+
+# TODO(cfarquhar): This really should be the default for ironic upstream
+nova_reserved_host_disk_mb: 0
+
+# Ironic needs MTU=1500 for now.  Also, log dhcp to a dedicated file.
+neutron_network_device_mtu: 1500
+neutron_dhcp_config:
+  dhcp-option-force: "26,1500"
+  log-facility: "/var/log/neutron/neutron-dnsmasq.log"
+
+# TODO: (uros) VXLAN and VLAN not required in this ironic deployment
+neutron_vxlan_enabled: false
+
+# This causes DHCP to give a routable address for clients to use tftp
+{% raw %}
+ironic_tftp_server_address: "{{ container_networks.ironic_address.address }}"
+{% endraw %}
+
+ironic_openstack_driver_list: 
+  - fake
+  - agent_ipmitool
+
+# Our deployment takes 4 hours.  No reason to update the apt cache every 5 minutes
+cache_timeout: 14400
+
+# Enable swift3 middleware for S3 compatibility
+swift_swift3_enabled: true
+swift_reselleradmin_role: reseller_admin
+
+# Use directory instead of LVM for LXC storage
+lxc_container_backing_store: dir
+
+# By default, max connections are configured to be 100x the number of vCPUs on the
+# smalled server in the cluster.  Some of our lab equipment has 6 CPUs and gives us
+# a number that is too small to work.  We should reconsider this value in production.
+galera_max_connections: 4000
+
+
+tempest_public_net_physical_type: "ironic"
+
+# Post AD integration variables
+# How many seconds to wait for keystone to retrieve LDAP users
+ldap_user_retrieval_delay: 180
+
+# Tell swift to use an rsync module per drive.
+swift_rsync_module_per_drive: True
+
+# Adding elastic search and kibana to haproxy_extra_services
+# NOTE(cfarquhar): when we bump rpc-openstack SHA, we can probably
+# consume this from their copy if we're happy with the default.
+{% raw %}
+haproxy_extra_services:
+  - service:
+      haproxy_service_name: elasticsearch
+      haproxy_backend_nodes: "{{ groups['elasticsearch'] | default([]) }}"
+      haproxy_ssl: False
+      haproxy_port: 9200
+      haproxy_balance_type: http
+      haproxy_backend_options:
+        - "httpchk /healthcheck"
+  - service:
+      haproxy_service_name: kibana_ssl
+      haproxy_backend_nodes: "{{ groups['kibana'] | default([]) }}"
+      haproxy_ssl: False
+      haproxy_port: 8443
+      haproxy_balance_type: tcp
+      haproxy_backend_options:
+        - "ssl-hello-chk"
+{% endraw %}
+
+# We need to override the OpenStack upper constraint for Mitaka which is version 1.9.0, We should be able to remove this in Newton as the upper constraint moves to 2.3.0
+# NOTE(cfarquhar): when we bump rpc-openstack SHA, we can probably
+# consume this from their copy if we're happy with the default.
+#repo_build_upper_constraints_overrides:
+#  - "elasticsearch==2.3.0"
+
+# This variable name is a little misleading, but it represents the
+# physical network ID (e.g. what would be passed to neutron with the
+# --provider:physical_network argument when creating a network) used
+# for creating the 'public' network for tempest testing.
+tempest_public_net_physical_type: "ironic"
+
+# The CBA proxy environment breaks keepalived instllation without this override
+keepalived_keyserver: 'hkp://keyserver.ubuntu.com:80'
+
+# Github issue #453 "increase default quota size for injected file size"
+nova_quota_injected_file_content_bytes: 65000
+
+#Ironic
+# Neutron network UUID or name for the ramdisk to be booted
+# into for cleaning nodes. Required for "neutron" network
+# interface. It is also required if cleaning nodes when using
+# "flat" network interface or "neutron" DHCP provider. If a
+# name is provided, it must be unique among all networks or
+# cleaning will fail. (string value)
+#ironic_neutron_cleaning_network_name: "{{ openstack.ironic.cleaning_net }}"
+#ironic_neutron_provisioning_network_name: "{{ openstack.ironic.provisioning_net }}"
+{% raw %}
+generate_fsid: false
+fsid: 116f14c4-7fe1-40e4-94eb-9240b63de5c1 # Replace with your generated UUID
+monitor_address_block: "{{ cidr_networks.container }}"
+public_network: "{{ cidr_networks.container }}"
+cluster_network: "{{ cidr_networks.storage }}"
+osd_scenario: collocated
+pool_default_pg_num: 32
+openstack_config: true # Ceph ansible automatically creates pools & keys
+cinder_ceph_client: cinder
+cinder_default_volume_type: RBD
+glance_ceph_client: glance
+glance_default_store: rbd
+glance_rbd_store_pool: images
+nova_libvirt_images_rbd_pool: vms
+devices:
+  - '/dev/vdb'
+  - '/dev/vdc'
+  - '/dev/vdd'
+cinder_backends:
+  RBD:
+    volume_driver: cinder.volume.drivers.rbd.RBDDriver
+    rbd_pool: volumes
+    rbd_ceph_conf: /etc/ceph/ceph.conf
+    rbd_store_chunk_size: 8
+    volume_backend_name: rbddriver
+    rbd_user: "{{ cinder_ceph_client }}"
+    rbd_secret_uuid: "{{ cinder_ceph_client_uuid }}"
+    report_discard_supported: true
+{% endraw %}

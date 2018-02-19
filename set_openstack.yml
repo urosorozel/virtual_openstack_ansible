@@ -1,0 +1,109 @@
+- name: Configure Common
+  hosts: all
+  remote_user: root
+#  strategy: debug
+  tasks:
+    - name: Create /openstack
+      file:
+        path: /openstack
+        state: directory
+
+- name: Configure Common
+  hosts: infra[0]
+  remote_user: root
+#  strategy: debug
+  tasks:
+#    - debug: var=hostvars
+
+    - name: Create /etc/openstack_deploy
+      file:
+        path: /etc/openstack_deploy
+        state: directory
+
+    - name: Copy Default Configuration Files Done Fact
+      ini_file: dest=/etc/ansible/facts.d/default_configs.fact section=state option=done value=true
+
+    - name: Copy OpenStack User Config File
+      template: src=templates/{{Profile}}/etc/openstack_deploy/openstack_user_config.yml.j2 dest=/etc/openstack_deploy/openstack_user_config.yml
+
+    - name: Copy user_variables.yml File
+      template: src=templates/{{Profile}}/etc/openstack_deploy/user_variables.yml.j2 dest=/etc/openstack_deploy/user_variables.yml
+
+
+- name: Setup infra1
+  hosts: infra_one
+  tasks:
+    - name: Get Openstack ansible from git
+      git:
+        repo: https://github.com/openstack/openstack-ansible.git
+        dest: /opt/openstack-ansible
+        version: "{{ openstack_ansible_version }}"
+
+    - name: Boostrap ansible
+      shell: |
+        ./scripts/bootstrap-ansible.sh
+      args:
+        chdir: /opt/openstack-ansible
+        creates: /etc/ansible/roles
+
+  hosts: infra,ceph,compute
+  gather_facts: false
+  vars:
+    swapfile_location: /openstack/swapfile
+    swapfile_size: 4096MB
+  user: root
+  roles:
+    - kamaln7.swapfile
+
+- name: Configure swap on compute ans storage
+  hosts: infra,ceph,compute
+  #gather_facts: false
+  vars:
+    swapfile_size: 4096MB
+  user: root
+  roles:
+    - kamaln7.swapfile
+
+- name: Openstack Setup hosts
+  hosts: infra[0]
+  tags:
+    - setup_openstack
+  tasks:
+#    - name: Copy Openstack ansible config to infra1
+#      copy:
+#        src: etc/openstack_deploy/{{ item }}
+#        dest: /etc/openstack_deploy/
+#      with_items:
+#        - openstack_user_config.yml
+#        - user_variables.yml 
+
+    - name: Copy user_secrets.yml
+      shell: |
+        cp  /opt/openstack-ansible/etc/openstack_deploy/user_secrets.yml /etc/openstack_deploy/
+      args:
+        creates: /etc/openstack_deploy/user_secrets.yml
+
+    - name: Generate secrets
+      shell: |
+        ./scripts/pw-token-gen.py --file /etc/openstack_deploy/user_secrets.yml
+      args:
+        creates: /etc/openstack_deploy/user_secrets.yml.tar
+        chdir: /opt/openstack-ansible 
+
+    - name: Setup hosts playbook run
+      shell: |
+        openstack-ansible setup-hosts.yml --skip-tags security
+      args:
+        chdir: /opt/openstack-ansible/playbooks
+
+    - name: Setup infrastructure playbook run
+      shell: |
+        openstack-ansible setup-infrastructure.yml
+      args:
+        chdir: /opt/openstack-ansible/playbooks
+
+    - name: Setup openstack playbook run
+      shell: |
+        openstack-ansible setup-openstack.yml
+      args: 
+        chdir: /opt/openstack-ansible/playbooks

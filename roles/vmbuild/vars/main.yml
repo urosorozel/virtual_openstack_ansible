@@ -1,0 +1,4 @@
+---
+build_content_tmproot_dir: "_"
+build_volume_name: "config-2"
+build_availability_zone: ""

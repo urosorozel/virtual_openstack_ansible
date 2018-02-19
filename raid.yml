@@ -1,0 +1,55 @@
+---
+  - name: Deploy RAID
+    hosts: localhost
+    user: root
+    vars:
+      software_raid_alerts_email: "root@localhost"
+      software_raid_create_kwargs: "--run" # force the creation if there are any prompts
+      software_raid_devices:
+      - device: /dev/md0
+        level: 0
+        components:
+          - /dev/sdb
+          - /dev/sdc
+          - /dev/sdd
+        filesystem_type: "ext4"
+        mount_point: "/data/pool_a"
+        mount_options: "noatime,noexec,nodiratime"
+        dump: 0
+        passno: 0
+      - device: /dev/md1
+        level: 0
+        components:
+          - /dev/sde
+          - /dev/sdg
+          - /dev/sdf
+        filesystem_type: "ext4"
+        mount_point: "/data/pool_b"
+        mount_options: "noatime,noexec,nodiratime"
+        dump: 0
+        passno: 0
+      - device: /dev/md2
+        level: 0
+        components:
+          - /dev/sdh
+          - /dev/sdj
+          - /dev/sdi
+        filesystem_type: "ext4"
+        mount_point: "/data/pool_c"
+        mount_options: "noatime,noexec,nodiratime"
+        dump: 0
+        passno: 0
+      - device: /dev/md3
+        level: 0
+        components:
+          - /dev/sdl
+          - /dev/sdk
+          - /dev/sdm
+        filesystem_type: "ext4"
+        mount_point: "/data/pool_d"
+        mount_options: "noatime,noexec,nodiratime"
+        dump: 0
+        passno: 0
+    roles:
+      - role: jacoelho.softwareraid
+

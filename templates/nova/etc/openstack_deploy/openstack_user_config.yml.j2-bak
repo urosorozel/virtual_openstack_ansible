@@ -1,0 +1,180 @@
+---
+cidr_networks:
+{% for key,value in Openstack.networks.iteritems() %}
+  {{key}}: {{value.cidr_networks}}
+{% endfor %}
+
+used_ips:
+{% for key,value in Openstack.networks.iteritems() %}
+{% set used=value.used_ips.split('#') %}
+{% for ips in used %}
+  - {{ ips }}
+{% endfor %}
+{% endfor %}
+
+global_overrides:
+  internal_lb_vip_address: {{ VIPs['internal_hostname'] }}
+  external_lb_vip_address: {{ VIPs['external_hostname'] }}
+  management_bridge: br-mgmt
+#  tunnel_bridge: br-vxlan
+  provider_networks:
+    - network:
+        container_bridge: "br-mgmt"
+        container_interface: "eth1"
+        container_type: "veth"
+        ip_from_q: "container"
+        is_container_address: true
+        is_ssh_address: true
+        type: "raw"
+        group_binds:
+          - all_containers
+          - hosts
+    - network:
+        group_binds:
+          - neutron_linuxbridge_agent
+          - ironic_conductor_container
+          - ironic_api_container        # api included so tftp override works
+        container_bridge: "br-ironic"
+        container_type: "veth"
+        container_interface: "eth12"
+        type: "flat"
+# TODO (cfarquhar): This should really be called "host", but os_tempest hard codes it to "flat".
+        net_name: "ironic"
+        ip_from_q: "ironic"
+    - network:
+        container_bridge: "br-storage"
+        container_type: "veth"
+        container_interface: "eth2"
+        ip_from_q: "storage"
+        type: "raw"
+        group_binds:
+          - glance_api
+          - swift_proxy
+  swift:
+    part_power: 10
+    storage_network: 'br-storage'
+    replication_network: 'br-swift'
+    drives:
+{% for disk in disks.swift %}
+      - name: {{disk}}
+{% endfor %}
+    mount_point: /srv
+    storage_policies:
+      - policy:
+          name: default
+          index: 0
+          default: True
+
+{% if groups.infra|length > 0 %}
+shared-infra_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% if groups.infra|length == 1 %}
+    affinity:
+      rabbit_mq_container: 3
+      galera_container: 3
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if groups.infra|length > 0 %}
+ironic-infra_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% endif %}
+
+{% if groups.infra|length > 0 %}
+repo-infra_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% endif %}
+
+{% if groups.infra|length > 0 %}
+os-infra_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% if loop.index > 1 %}
+    affinity:
+      glance_conatiner: 0
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if groups.infra|length > 0 %}
+identity_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% endif %}
+
+{% if groups.infra|length > 0 %}
+network_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% endif %}
+
+#{% if groups.compute|length > 0 %}
+#compute_hosts:
+#{% for host in groups.compute %}
+#  {{ host }}:
+#    ip: {{ hostvars[ host ].Networking.host.address }}
+#{% endfor %}
+#{% endif %}
+
+{% if groups.infra|length > 0 %}
+ironic-compute_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+# Try install ironic copute on multiple containers
+#  {{ groups.infra|first }}:
+#    ip: {{ hostvars[ groups.infra|first ].Networking.host.address }}
+{% endif %}
+
+{% if groups.logging|length > 0 %}
+log_hosts:
+{% for host in groups.logging %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% endif %}
+
+{% if groups.haproxy|length > 0 %}
+haproxy_hosts:
+{% for host in groups.haproxy %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% elif groups.infra|length > 0 %}
+haproxy_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% endif %}
+
+{% if groups.infra|length > 0 %}
+swift-proxy_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% endif %}
+
+{% if groups.infra|length > 0 %}
+swift_hosts:
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+{% endif %}

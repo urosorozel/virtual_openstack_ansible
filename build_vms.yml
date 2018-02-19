@@ -1,0 +1,10 @@
+---
+  - name: Deploy haproxy KVM virtual machines
+    hosts: hypervisor
+    user: root
+    vars:
+      vms: "{{ blueprints }}"
+      #vm_build_proxy_list: "{{ global_environment_variables }}"
+    roles:
+      - role: vmbuild
+

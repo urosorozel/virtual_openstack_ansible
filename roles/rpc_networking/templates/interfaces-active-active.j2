@@ -1,0 +1,151 @@
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+{% for item in rpc_networking.bond_interfaces %}
+# Bond {{ item.name }} interfaces
+{% for nic in item.nics %}
+auto {{ nic.name }}
+iface {{ nic.name }} inet manual
+{% if nic.mtu is defined %}
+   mtu {{ nic.mtu }}
+{% endif %}
+   bond-master {{ item.name }}
+
+{% endfor -%}
+{% endfor -%}
+
+# Bond Interfaces
+{% for item in rpc_networking.bond_interfaces %}
+auto {{ item.name }}
+iface {{ item.name }} inet manual
+{% if item.mtu is defined %}
+   mtu {{ item.mtu }}
+{% endif %}
+   bond-mode 4
+   bond_xmit_hash_policy layer3+4
+   bond-lacp-rate 1
+   bond-miimon 100
+   bond-slaves none
+
+{% endfor -%}
+{% if rpc_networking.mgmt is defined %}
+# Container VLAN Tagged Interface
+auto {{ rpc_networking.mgmt.interface }}.{{ rpc_networking.mgmt.vlan }}
+iface {{ rpc_networking.mgmt.interface }}.{{ rpc_networking.mgmt.vlan }} inet manual
+{% if rpc_networking.mgmt.mtu is defined %}
+   mtu {{ rpc_networking.mgmt.mtu }}
+{% endif %}
+{% endif %}
+{% if rpc_networking.storage is defined %}
+
+# Storage VLAN Tagged Interface
+auto {{ rpc_networking.storage.interface }}.{{ rpc_networking.storage.vlan }}
+iface {{ rpc_networking.storage.interface }}.{{ rpc_networking.storage.vlan }} inet manual
+{% if rpc_networking.storage.mtu is defined %}
+   mtu {{ rpc_networking.storage.mtu }}
+{% endif %}
+{% endif %}
+{% if rpc_networking.swift is defined %}
+
+# Swift Replication VLAN Tagged Interface
+auto {{ rpc_networking.swift.interface }}.{{ rpc_networking.swift.vlan }}
+iface {{ rpc_networking.swift.interface }}.{{ rpc_networking.swift.vlan }} inet manual
+{% if rpc_networking.swift.mtu is defined %}
+   mtu {{ rpc_networking.swift.mtu }}
+{% endif %}
+{% endif %}
+{% if rpc_networking.ironic is defined %}
+
+# Ironic provisioning VLAN Tagged Interface
+auto {{ rpc_networking.ironic.interface }}.{{ rpc_networking.ironic.vlan }}
+iface {{ rpc_networking.ironic.interface }}.{{ rpc_networking.ironic.vlan }} inet manual
+{% if rpc_networking.ironic.mtu is defined %}
+   mtu {{ rpc_networking.ironic.mtu }}
+{% endif %}
+{% endif %}
+
+# Host Bridge
+auto br-host
+iface br-host inet static
+   address {{ rpc_networking.host.address }}
+   netmask {{ rpc_networking.host.netmask }}
+   gateway {{ rpc_networking.host.gateway }}
+   dns-search {{rpc_networking.host.dns_search }}
+   dns-nameservers {{ rpc_networking.host.nameservers }}
+{% if rpc_networking.host.mtu is defined %}
+   mtu {{ rpc_networking.host.mtu }}
+{% endif %}
+   bridge_ports {{ rpc_networking.host.interface }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+
+# Container Bridge
+auto br-mgmt
+iface br-mgmt inet static
+   address {{ rpc_networking.mgmt.address }}
+   netmask {{ rpc_networking.mgmt.netmask }}
+{% if rpc_networking.mgmt.mtu is defined %}
+   mtu {{ rpc_networking.mgmt.mtu }}
+{% endif %}
+   bridge_ports {{ rpc_networking.mgmt.interface }}.{{ rpc_networking.mgmt.vlan }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+{% if rpc_networking.storage is defined %}
+
+# Storage Bridge
+auto br-storage
+iface br-storage inet static
+   address {{ rpc_networking.storage.address }}
+   netmask {{ rpc_networking.storage.netmask }}
+{% if rpc_networking.storage.mtu is defined %}
+   mtu {{ rpc_networking.storage.mtu }}
+{% endif %}
+   bridge_ports {{ rpc_networking.storage.interface }}.{{ rpc_networking.storage.vlan }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+{% endif %}
+{% if rpc_networking.swift is defined %}
+
+# Swift Replication Bridge
+auto br-swift
+iface br-swift inet static
+   address {{ rpc_networking.swift.address }}
+   netmask {{ rpc_networking.swift.netmask }}
+{% if rpc_networking.swift.mtu is defined %}
+   mtu {{ rpc_networking.swift.mtu }}
+{% endif %}
+   bridge_ports {{ rpc_networking.swift.interface }}.{{ rpc_networking.swift.vlan }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+{% endif %}
+{% if rpc_networking.ironic is defined %}
+
+# Ironic Replication Bridge
+auto br-ironic
+{% if rpc_networking.ironic.address is defined %}
+iface br-ironic inet static
+   address {{ rpc_networking.ironic.address }}
+   netmask {{ rpc_networking.ironic.netmask }}
+{% else %}
+iface br-ironic inet manual
+{% endif %}
+{% if rpc_networking.ironic.mtu is defined %}
+   mtu {{ rpc_networking.ironic.mtu }}
+{% endif %}
+   bridge_ports {{ rpc_networking.ironic.interface }}.{{ rpc_networking.ironic.vlan }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+{% endif %}
+
+source /etc/network/interfaces.d/*.cfg

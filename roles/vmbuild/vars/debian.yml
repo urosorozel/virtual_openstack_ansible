@@ -1,0 +1,8 @@
+---
+build_os_network_path: "/etc/network/interfaces.d/"
+
+build_distro_packages:
+  - libvirt-bin
+  - qemu-kvm
+  - virtinst
+  - genisoimage

@@ -1,0 +1,86 @@
+---
+- name: Check for existing virtual machines "{{ vm.build_name }}"
+  shell: >
+     virsh list --all --name | egrep ^{{ vm.build_name }}$ | wc -l
+  register: build_existing
+
+- block:
+  - name: Create config drive metadata folders
+    file:
+      path: "{{ build_config_dir }}/{{ vm.build_name }}/{{ item }}"
+      recurse: yes
+      state: directory
+    with_items:
+      - "openstack/2012-08-10"
+      - "openstack/latest"
+      - "openstack/content"
+  
+  - name: Create configdrive temporary metadata folder
+    file:
+      path: "{{ build_config_dir }}/{{ vm.build_name }}/{{ item }}"
+      recurse: yes
+      state: directory
+    with_items:
+      - "openstack/{{ build_content_tmproot_dir }}"
+  
+  - name: Setup temporary folder for include files
+    set_fact: _build_content_path="{{ build_config_dir }}/{{ vm.build_name }}/openstack/{{ build_content_tmproot_dir }}"
+  
+  - include: configdrive_ssh_public_key.yml
+    when: not vm.build_ssh_public_key is defined or vm.build_ssh_public_key is none
+  
+  - include: configdrive_network.yml
+  
+  - name: List the include files on temporary folder
+    shell: find "{{ _build_content_path }}" -type f | sed "s|{{ _build_content_path }}||"
+    register: __build_content_files
+  
+  - name: Get the list of include files on temporary folder
+    set_fact: _build_content_files="{{ __build_content_files.stdout }}"
+  
+  - name: Move files to destination from temporary folder
+    command: mv -v "{{ _build_content_path }}/{{ item.1 }}" "{{ build_config_dir }}/{{ vm.build_name }}/openstack/content/{{ '%04d' % item.0|int }}"
+    with_indexed_items: "{{ __build_content_files.stdout_lines }}"
+    # with_indexed_items in block fails :/
+    ignore_errors: True
+
+  - name: Delete temporary folder
+    file:
+      state: absent
+      force: yes
+      name: "{{ _build_content_path }}"
+  
+  - name: Create meta_data.json
+    template:
+      src: meta_data.json.j2
+      dest: "{{ build_config_dir }}/{{ vm.build_name }}/{{ item }}/meta_data.json"
+    with_items:
+      - "openstack/2012-08-10"
+      - "openstack/latest"
+  
+  - name: Copy metadata file user_data
+    template:
+      src: "{{ vm.build_config_user_data_path }}"
+      dest: "{{ build_config_dir }}/{{ vm.build_name }}/{{ item }}/user_data"
+    with_items:
+      - "openstack/2012-08-10"
+      - "openstack/latest"
+    when: vm.build_config_user_data_path is defined
+  
+  - name: Create configdrive iso file
+    shell: > 
+      genisoimage  -volid "{{ build_volume_name }}"  -output "{{ build_iso_dir }}/{{ vm.build_name }}.iso" -joliet -rock 
+      "{{ build_config_dir }}/{{ vm.build_name }}" 
+    when: build_iso_dir is defined and not build_config_dir is none
+  
+  - name: Cleanup instance config drive folder
+    file: 
+      state: absent
+      force: yes 
+      name: "{{ build_config_dir }}/{{ vm.build_name }}"
+    when: >
+      build_config_dir_delete is defined 
+      and build_config_dir_delete
+  
+  when: build_existing.stdout|int == 0
+  become: true 

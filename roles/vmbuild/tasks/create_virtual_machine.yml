@@ -1,0 +1,56 @@
+---
+
+- name: Create disk directory
+  file:
+    path: "{{ build_disk_dir }}"
+    recurse: yes
+    state: directory
+
+- name: Check for existing virtual machines "{{ vm.build_name }}"
+  shell: >
+     virsh list --all --name | egrep ^{{ vm.build_name }}$ | wc -l
+  register: build_existing
+
+- name: Create virtual machine disk for "{{ vm.build_name }}"
+  shell: >
+     qemu-img convert -O qcow2 {{ build_image_dir }}/{{ vm.build_image | basename }} 
+     {{ build_disk_dir }}/{{ vm.build_name }}.qcow2
+  when: build_existing.stdout|int == 0
+
+- name: Resize virtual machine disk for "{{ vm.build_name }}"
+  shell: >
+     qemu-img resize {{ build_disk_dir }}/{{ vm.build_name }}.qcow2 {{ vm.build_disk }}
+  when: build_existing.stdout|int == 0
+
+- name: Start Virtual machine "{{ vm.build_name }}"
+  command: >
+    virt-install --name="{{ vm.build_name }}"
+                 --vcpus="{{ vm.build_cpu }}"
+                 --ram="{{ vm.build_memory }}"
+                 --description="{{ vm.build_name }} provisioned with ansible build role."
+                 --autostart
+                 --boot=hd
+                 --controller="type=scsi,model=virtio-scsi" 
+                 --noautoconsole
+                 {% if vm.build_vnc_enable %}
+                 --graphics vnc,password={{ vm.build_vnc_password }},port={{ vm.build_vnc_port }}
+                 {% else %}
+                 --graphics none
+                 {% endif %}
+                 --virt-type={{ vm.build_virtualization }}
+                 --os-type=linux
+                 --disk path="{{ build_disk_dir }}/{{ vm.build_name }}.qcow2,format=qcow2,cache=none,bus=virtio"
+                 {% if vm.block_device_list != None %}
+                 {% for dev in vm.block_device_list %}
+                     {% if  dev.type == "logical" %}
+                              --disk pool="{{ vm.build_disk_pool }},size={{ dev.block_size }},device=disk,cache=none"
+                     {% else %}
+                             --disk pool="{{ vm.build_disk_pool }},size={{ dev.block_size }},device=disk,format=qcow2,cache=none,bus=virtio"
+                     {% endif %}
+                 {% endfor %}
+                 {% endif %}
+                 --disk path="{{ build_iso_dir }}/{{ vm.build_name }}.iso,device=cdrom"
+    {% for dev in vm.build_network_device_list %}
+                 --network bridge={{ dev.host_net_dev }},model=virtio
+    {% endfor %}
+  when: build_existing.stdout|int == 0

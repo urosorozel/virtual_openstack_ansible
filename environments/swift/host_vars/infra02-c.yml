@@ -1,0 +1,62 @@
+
+
+Networking:
+  bond_interfaces:
+  - name: bond0
+    mtu: 1500
+    nics:
+    - name: ens2
+      mtu: 1500
+  host:
+    dns_search: rpc-cp-c.net
+    gateway: 10.30.10.1
+    interface: bond0
+    nameservers: 10.184.227.134
+    address: 10.30.10.79
+    netmask: 255.255.255.0
+  ironic:
+    interface: ens4
+    address: 10.30.40.5
+    netmask: 255.255.255.0
+    vlan: 203
+  mgmt:
+    interface: ens3
+    address: 10.30.20.11
+    netmask: 255.255.255.0
+    range: 10.30.20.20,10.30.20.253
+  storage:
+    interface: bond0
+    address: 10.30.60.11
+    netmask: 255.255.255.0
+    range: 10.30.60.20,10.30.60.253
+    vlan: 205
+  swift:
+    interface: bond0
+    address: 10.30.50.11
+    netmask: 255.255.255.0
+    range: 10.30.50.20,10.30.50.253
+    vlan: 207
+  vlan:
+    interface: bond0
+    mtu: 1500
+  vxlan:
+    interface: bond0
+    vlan: 206
+    address: 10.30.70.11
+    netmask: 255.255.252.0
+    mtu: 1500
+  template: interfaces-active-passive-ironic.j2
+nics:
+  ens2:
+    gateway: 10.30.10.1
+    ip: 10.30.10.78
+    mac: 52:54:00:00:10:78
+    nameservers: 10.184.227.134
+    subnet: 255.255.255.0
+  ens3:
+    ip: 0.0.0.0
+    mac: 0c:c4:7a:b6:f1:d7
+    subnet: 255.255.255.0
+disks:
+  swift: [vdb, vdc, vdd]
+role: infra

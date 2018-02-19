@@ -1,0 +1,43 @@
+
+
+Networking:
+  bond_interfaces:
+  - name: bond0
+    mtu: 1500
+    nics:
+    - name: ens2
+      mtu: 1500
+  host:
+    dns_search: rpc-cp-c.net
+    gateway: 10.30.10.1
+    interface: bond0
+    nameservers: 10.184.227.134
+    address: 10.30.10.82
+    netmask: 255.255.255.0
+  mgmt:
+    interface: ens3
+    address: 10.30.20.14
+    netmask: 255.255.255.0
+    range: 10.30.20.20,10.30.20.253
+#  ironic:
+#    interface: ens4
+#    address: 10.30.40.8
+#    netmask: 255.255.255.0
+  storage:
+    interface: bond0
+    address: 10.30.60.14
+    netmask: 255.255.255.0
+    range: 10.30.60.20,10.30.60.253
+    vlan: 205
+  vlan:
+    interface: bond0
+    mtu: 1500
+  vxlan:
+    interface: bond0
+    vlan: 206
+    address: 10.30.70.14
+    netmask: 255.255.252.0
+    mtu: 1500
+  template: interfaces-active-passive-ironic.j2
+# Below is important for ens4 config on compute node
+role: infra

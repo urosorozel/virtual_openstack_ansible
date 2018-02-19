@@ -1,0 +1,150 @@
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+{% for item in rpc_networking.bond_interfaces %}
+auto {{ item.name }}
+iface {{ item.name }} inet manual
+{% if item.mtu is defined %}
+mtu {{ item.mtu }}
+{% endif %}
+bond-master {{ item.bond }}
+{% if item.bond_primary is defined %}
+bond-primary {{ item.name }}
+{% endif %}
+
+{% endfor -%}
+
+# Primary Network Interface
+auto {{ rpc_networking.host.interface }}
+iface {{ rpc_networking.host.interface }} inet manual
+{% if rpc_networking.host.mtu is defined %}
+mtu {{ rpc_networking.host.mtu }}
+{% endif %}
+bond-mode 1
+bond-miimon 100
+bond-slaves none
+
+# Secondary Network Interface
+auto {{ rpc_networking.vlan.interface }}
+iface {{ rpc_networking.vlan.interface }} inet manual
+{% if rpc_networking.vlan.mtu is defined %}
+mtu {{ rpc_networking.vlan.mtu }}
+{% endif %}
+bond-mode 1
+bond-miimon 100
+bond-slaves none
+
+# Container VLAN Tagged Interface
+auto {{ rpc_networking.mgmt.interface }}.{{ rpc_networking.mgmt.vlan }}
+iface {{ rpc_networking.mgmt.interface }}.{{ rpc_networking.mgmt.vlan }} inet manual
+{% if rpc_networking.mgmt.mtu is defined %}
+mtu {{ rpc_networking.mgmt.mtu }}
+{% endif %}
+
+# Storage VLAN Tagged Interface
+auto {{ rpc_networking.storage.interface }}.{{ rpc_networking.storage.vlan }}
+iface {{ rpc_networking.storage.interface }}.{{ rpc_networking.storage.vlan }} inet manual
+{% if rpc_networking.storage.mtu is defined %}
+mtu {{ rpc_networking.storage.mtu }}
+{% endif %}
+
+# VXLAN VLAN Tagged Interface
+auto {{ rpc_networking.vxlan.interface }}.{{ rpc_networking.vxlan.vlan }}
+iface {{ rpc_networking.vxlan.interface }}.{{ rpc_networking.vxlan.vlan }} inet manual
+{% if rpc_networking.vxlan.mtu is defined %}
+mtu {{ rpc_networking.vxlan.mtu }}
+{% endif %}
+
+# Swift Replication VLAN Tagged Interface
+auto {{ rpc_networking.swift.interface }}.{{ rpc_networking.swift.vlan }}
+iface {{ rpc_networking.swift.interface }}.{{ rpc_networking.swift.vlan }} inet manual
+{% if rpc_networking.swift.mtu is defined %}
+mtu {{ rpc_networking.swift.mtu }}
+{% endif %}
+
+# Host Bridge
+auto br-host
+iface br-host inet static
+address {{ rpc_networking.host.address }}
+netmask {{ rpc_networking.host.netmask }}
+gateway {{ rpc_networking.host.gateway }}
+dns-nameservers {{ rpc_networking.host.nameservers }}
+{% if rpc_networking.host.mtu is defined %}
+mtu {{ rpc_networking.host.mtu }}
+{% endif %}
+bridge_ports {{ rpc_networking.host.interface }}
+bridge_stp off
+bridge_waitport 0
+bridge_fd 0
+offload-sg off
+
+# Container Bridge
+auto br-mgmt
+iface br-mgmt inet static
+address {{ rpc_networking.mgmt.address }}
+netmask {{ rpc_networking.mgmt.netmask }}
+{% if rpc_networking.mgmt.mtu is defined %}
+mtu {{ rpc_networking.mgmt.mtu }}
+{% endif %}
+bridge_ports {{ rpc_networking.mgmt.interface }}.{{ rpc_networking.mgmt.vlan }}
+bridge_stp off
+bridge_waitport 0
+bridge_fd 0
+offload-sg off
+
+# Storage Bridge
+auto br-storage
+iface br-storage inet static
+address {{ rpc_networking.storage.address }}
+netmask {{ rpc_networking.storage.netmask }}
+{% if rpc_networking.storage.mtu is defined %}
+mtu {{ rpc_networking.storage.mtu }}
+{% endif %}
+bridge_ports {{ rpc_networking.storage.interface }}.{{ rpc_networking.storage.vlan }}
+bridge_stp off
+bridge_waitport 0
+bridge_fd 0
+offload-sg off
+
+# VLAN Bridge
+auto br-vlan
+iface br-vlan inet manual
+{% if rpc_networking.vlan.mtu is defined %}
+mtu {{ rpc_networking.vlan.mtu }}
+{% endif %}
+bridge_ports {{ rpc_networking.vlan.interface }}
+bridge_stp off
+bridge_waitport 0
+bridge_fd 0
+offload-sg off
+
+# VXLAN Bridge
+auto br-vxlan
+iface br-vxlan inet static
+address {{ rpc_networking.vxlan.address }}
+netmask {{ rpc_networking.vxlan.netmask }}
+{% if rpc_networking.vxlan.mtu is defined %}
+mtu {{ rpc_networking.vxlan.mtu }}
+{% endif %}
+bridge_ports {{ rpc_networking.vxlan.interface }}.{{ rpc_networking.vxlan.vlan }}
+bridge_stp off
+bridge_waitport 0
+bridge_fd 0
+offload-sg off
+
+# Swift Replication Bridge
+auto br-swift
+iface br-swift inet static
+address {{ rpc_networking.swift.address }}
+netmask {{ rpc_networking.swift.netmask }}
+{% if rpc_networking.swift.mtu is defined %}
+mtu {{ rpc_networking.swift.mtu }}
+{% endif %}
+bridge_ports {{ rpc_networking.swift.interface }}.{{ rpc_networking.swift.vlan }}
+bridge_stp off
+bridge_waitport 0
+bridge_fd 0
+offload-sg off
+
+source /etc/network/interfaces.d/*.cfg

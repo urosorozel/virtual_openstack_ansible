@@ -1,0 +1,24 @@
+#jinja2: trim_blocks: "true", lstrip_blocks: "true"
+---
+- name: Create image directory
+  file: path={{ build_image_dir }} state=directory
+
+- name: Downloading image
+  get_url:
+    url: "{{ vm.build_image }}"
+    dest: "{{ build_image_dir }}/{{ vm.build_image | basename }}"
+  
+  #shell: >
+  #  if [ -f "{{build_image_dir}}/{{vm.build_image | basename}}" ]; then
+  #    MDSUM=$( md5sum "{{build_image_dir}}/{{vm.build_image | basename}}" | awk '{print $1}');
+  #    if [ "$MDSUM" = "{{vm.build_image_sum}}" ];then 
+  #      echo "Download skipped as image already exists"
+  #    else
+  #      echo "MDSUM:{{vm.build_image_sum}} doesn't match MDSUM: ${MDSUM} of a file"
+  #      wget --quiet "{{vm.build_image}}" -O "{{build_image_dir}}/{{vm.build_image | basename}}"
+  #    fi
+  #  else
+  #      wget --quiet "{{vm.build_image}}" -O "{{build_image_dir}}/{{vm.build_image | basename}}"
+  #  fi
+
+  environment: "{{ build_proxy_list }}"

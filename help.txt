@@ -1,0 +1,34 @@
+# Destroy undefine all
+virsh list --name | egrep 'util|ceph|comp|pro|inf|log|iro' | xargs -Ixx bash -c "virsh destroy xx;virsh undefine xx"
+
+# Delete all volumes
+virsh vol-list vgdata1 |egrep 'util|ceph|comp|pro|inf|log|iro' | egrep img | awk '{print $1}' | xargs -Ixx  virsh vol-delete xx vgdata1
+
+# Build VM
+ ansible-playbook -i environments/ceph/hosts  build_vms.ym
+
+# Check if all VMs are online
+ ansible -i environments/ceph/hosts  -m ping all
+
+# reset stuch vm 
+virsh reset xx
+
+# configure interfaces
+ansible-playbook  -i environments/ceph/hosts set_network.yml
+
+# set swift drives
+ansible-playbook  -i environments/ceph/hosts set_swift.yml
+
+# Reset
+virsh list --name | egrep 'util|ceph|comp|pro|inf|log|iro' | xargs -Ixx bash -c "virsh reset xx"
+
+# Check for online nodes
+ansible -i environments/ceph/hosts  -m ping all
+
+# Start openstack install
+ ansible-playbook  -i environments/ceph/hosts set_openstack.yml
+
+
+16.0.7  Galera server SHA
+
+sed -i 's|8e831696cee8944f592449043838de97c0b001cb|4f834785228549b57b6342125ecea8c06dacf6a|g' /opt/openstack-ansible/ansible-role-requirements.yml

@@ -1,0 +1,48 @@
+#jinja2: trim_blocks: "true", lstrip_blocks: "true"
+# {{ ansible_managed }}
+# Network configuration
+
+{% if item.mode is defined -%}
+{% if item.mode -%}
+auto {{ item.device }}
+{% endif %}
+{% else %}
+auto {{ item.device }}
+{% endif %}
+
+{% if item.bootproto is defined and item.bootproto == 'dhcp' -%}
+iface {{ item.device }} inet dhcp
+{% elif item.bootproto is defined and item.bootproto == 'manual' -%}
+iface {{ item.device }} inet manual
+{% elif not item.bootproto is defined or item.bootproto == 'static' %}
+iface {{ item.device }} inet static
+{% if item.address is defined %}
+        address {{ item.address }}
+{% endif %}
+{% if item.netmask is defined %}
+        netmask {{ item.netmask }}
+{% endif %}
+{% if item.gateway is defined %}
+        gateway {{ item.gateway }}
+{% endif %}
+{% endif %}
+{% if item.nameservers is defined %}
+        dns-nameservers {{ item.nameservers | join(' ') }}
+{% endif %}
+{% if item.domain is defined %}
+        dns-search {{ item.domain }}
+{% endif %}
+{% if item.type is defined -%}
+{% if item.type == 'vlan' -%}
+{% if item.backend is defined %}
+        vlan-raw-device {{ item.backend[0] }}
+{% endif %}
+{% endif %}
+{% endif %}
+{% if item.route is defined %}
+{% for i in item.route %}
+        up route add -net {{ i.network }}  netmask {{ i.netmask }} gw {{ i.gateway }} dev {{ item.device }}
+{% endfor %}
+{% endif %}
+
+

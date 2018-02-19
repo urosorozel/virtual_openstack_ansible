@@ -1,0 +1,136 @@
+---
+- name: Ubuntu 16 support
+  hosts: all,!hypervisor
+  gather_facts: false
+  pre_tasks:
+  - name: Install python2 for Ansible
+    raw: bash -c "test -e /usr/bin/python || ( apt -qqy update && apt install -qqy python-minimal python2.7)"
+    register: output
+    changed_when:
+    - output.stdout != ""
+    - output.stdout != "\r\n"
+  - name: Gathering Facts
+    setup:
+
+  tasks:
+  - name: Create a new file for APT config
+    file: path=/etc/apt/apt.conf.d/10disable-auto-apt  state=touch
+
+  - name: Disable Automatic APT
+    lineinfile:
+      dest: /etc/apt/apt.conf.d/10disable-auto-apt
+      line: 'APT::Periodic::Enable "0";'
+      state: present
+
+- name: Inject infra01 SSH keys
+  hosts: infra[0]
+  gather_facts: False
+  tasks:
+    - name: Ensure /root/.ssh exists
+      file:
+        path: /root/.ssh/
+        state: directory
+        mode: 0600
+  
+    - name: Install pre-generated SSH keys to infra01
+      copy:
+         src: 'files/{{ item.src }}'
+         dest: '/root/.ssh/{{ item.dest }}'
+         mode: '{{ item.mode }}'
+      with_items:
+         - { src: 'infra01-id_rsa', dest: 'id_rsa', mode: '0600' }
+         - { src: 'infra01-id_rsa.pub', dest: 'id_rsa.pub', mode: '0644' }
+    
+- hosts: all:!ironic
+  gather_facts: False
+  tasks:
+  - name: Add infra01 SSH public key to root user on all infra/haproxy nodes
+    authorized_key:
+      user=root
+      key="{{ item }}"
+    with_file:
+      - 'files/infra01-id_rsa.pub'
+
+#  - name: Set APT proxy config
+#    template:
+#      dest: "/etc/apt/apt.conf.d/70proxy"
+#      src: "templates/proxy.j2"
+#      mode: "0644"
+
+#  - name: Install proxy settings
+#    template:
+#      dest: "/etc/environment"
+#      src: "templates/environment.j2"
+#      mode: "0644"
+#    remote_user: root
+#    when:
+#      - global_environment_variables is defined
+
+#  - name: Ensure SSH key exists for client user
+#    shell: ssh-keygen -b 2048 -t rsa -f ~/.ssh/id_rsa -q -N ""
+#    args:
+#      creates: ~/.ssh/id_rsa
+#    delegate_to: 127.0.0.1
+#
+#  - name: Register local user's SSH public key
+#    shell: cat ~/.ssh/id_rsa.pub
+#    register: local_ssh_pubkey
+#    delegate_to: 127.0.0.1
+#
+#  - name: Add SSH public key for jenkins to root user
+#    authorized_key:
+#      user: root
+#      key: "{{ local_ssh_pubkey.stdout }}"
+#
+#  - name: Add static SSH public keys to root user
+#    authorized_key:
+#      user=root
+#      key="{{ item }}"
+#    with_file:
+#      - files/public_keys/rpc-prep
+#      - files/public_keys/infra01
+
+  - name: Flush apt package lists
+    file:
+      path=/var/lib/apt/lists/*
+      state=absent
+
+  - name: Ensure packages are installed
+    apt:
+      pkg={{ item }}
+      state=present
+      update_cache=yes
+    with_items:
+      - vim
+      - vlan
+      - ifenslave
+      - bridge-utils
+      - lsof
+      - lvm2
+      - ntp
+      - ntpdate
+      - openssh-server
+      - sudo
+      - tcpdump
+      - debootstrap
+#    environment: global_environment_variables
+
+  - name: Add 8021q to /etc/modules
+    lineinfile:
+      dest: /etc/modules
+      line: "{{ item }}"
+    with_items:
+      - '8021q'
+      - 'bonding'
+
+#  - name: Update NTP Config
+#    template: src=templates/ntp.conf.j2 dest=/etc/ntp.conf
+
+# - name: Update timezone
+#    command:  timedatectl set-timezone Australia/Sydney
+
+- hosts: infra:compute:logging:ceph:!ironic:!haproxy!hypervisor
+  roles:
+  - role: rpc_networking
+#  environment: global_environment_variables
+

@@ -1,0 +1,154 @@
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+{% for item in Networking.bond_interfaces %}
+# Bond {{ item.name }} interfaces
+{% for nic in item.nics %}
+auto {{ nic.name }}
+iface {{ nic.name }} inet manual
+{% if nic.mtu is defined %}
+   mtu {{ nic.mtu }}
+{% endif %}
+   bond-master {{ item.name }}
+
+{% endfor -%}
+{% endfor -%}
+
+# Bond Interfaces
+{% for item in Networking.bond_interfaces %}
+auto {{ item.name }}
+iface {{ item.name }} inet manual
+{% if item.mtu is defined %}
+   mtu {{ item.mtu }}
+{% endif %}
+   bond-mode 1
+   bond-miimon 100
+   bond-slaves none
+
+{% endfor -%}
+
+# Container VLAN Tagged Interface
+auto {{ Networking.mgmt.interface }}.{{ Networking.mgmt.vlan }}
+iface {{ Networking.mgmt.interface }}.{{ Networking.mgmt.vlan }} inet manual
+{% if Networking.mgmt.mtu is defined %}
+   mtu {{ Networking.mgmt.mtu }}
+{% endif %}
+
+{% if Networking.storage is defined %}
+# Storage VLAN Tagged Interface
+auto {{ Networking.storage.interface }}.{{ Networking.storage.vlan }}
+iface {{ Networking.storage.interface }}.{{ Networking.storage.vlan }} inet manual
+{% if Networking.storage.mtu is defined %}
+   mtu {{ Networking.storage.mtu }}
+{% endif %}{% endif %}
+
+{% if Networking.swift is defined %}
+# Swift Replication VLAN Tagged Interface
+auto {{ Networking.swift.interface }}.{{ Networking.swift.vlan }}
+iface {{ Networking.swift.interface }}.{{ Networking.swift.vlan }} inet manual
+{% if Networking.swift.mtu is defined %}
+   mtu {{ Networking.swift.mtu }}
+{% endif %}{% endif %}
+
+{% if Networking.ironic is defined %}
+# Ironic provisioning VLAN Tagged Interface
+auto {{ Networking.ironic.interface }}.{{ Networking.ironic.vlan }}
+iface {{ Networking.ironic.interface }}.{{ Networking.ironic.vlan }} inet manual
+{% if Networking.ironic.mtu is defined %}
+   mtu {{ Networking.ironic.mtu }}
+{% endif %}{% endif %}
+
+# Host Bridge
+auto br-host
+iface br-host inet static
+   address {{ Networking.host.address }}
+   netmask {{ Networking.host.netmask }}
+   gateway {{ Networking.host.gateway }}
+   dns-search  {{ Networking.host.dns_search }} 
+   dns-nameservers {{ Networking.host.nameservers }}
+{% if Networking.host.mtu is defined %}
+   mtu {{ Networking.host.mtu }}
+{% endif %}
+   bridge_ports {{ Networking.host.interface }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+
+
+# Container Bridge
+auto br-mgmt
+iface br-mgmt inet static
+   address {{ Networking.mgmt.address }}
+   netmask {{ Networking.mgmt.netmask }}
+{% if Networking.mgmt.mtu is defined %}
+   mtu {{ Networking.mgmt.mtu }}
+{% endif %}
+   bridge_ports {{ Networking.mgmt.interface }}.{{ Networking.mgmt.vlan }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+
+{% if Networking.storage is defined %}
+# Storage Bridge
+auto br-storage
+{% if Networking.storage.address is defined %}
+iface br-storage inet static
+   address {{ Networking.storage.address }}
+   netmask {{ Networking.storage.netmask }}
+{% else %}
+iface br-storage inet manual
+{% endif %}
+{% if Networking.storage.mtu is defined %}
+   mtu {{ Networking.storage.mtu }}
+{% endif %}
+   bridge_ports {{ Networking.storage.interface }}.{{ Networking.storage.vlan }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+{% endif %}
+
+{% if Networking.swift is defined %}
+# Swift Replication Bridge
+auto br-swift
+{% if Networking.swift.address is defined %}
+iface br-swift inet static
+   address {{ Networking.swift.address }}
+   netmask {{ Networking.swift.netmask }}
+{% else %}
+iface br-swift inet manual
+{% endif %}
+{% if Networking.swift.mtu is defined %}
+   mtu {{ Networking.swift.mtu }}
+{% endif %}
+   bridge_ports {{ Networking.swift.interface }}.{{ Networking.swift.vlan }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+{% endif %}
+
+{% if Networking.ironic is defined %}
+# Ironic Replication Bridge
+auto br-ironic
+{% if Networking.ironic.address is defined %}
+iface br-ironic inet static
+   address {{ Networking.ironic.address }}
+   netmask {{ Networking.ironic.netmask }}
+{% else %}
+iface br-ironic inet manual
+{% endif %}
+{% if Networking.ironic.mtu is defined %}
+   mtu {{ Networking.ironic.mtu }}
+{% endif %}
+   bridge_ports {{ Networking.ironic.interface }}.{{ Networking.ironic.vlan }}
+   bridge_stp off
+   bridge_waitport 0
+   bridge_fd 0
+   offload-sg off
+{% endif %}
+
+source /etc/network/interfaces.d/*.cfg

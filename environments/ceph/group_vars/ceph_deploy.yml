@@ -1,0 +1,6 @@
+openstack_ansible_version: 16.0.7
+Profile: ceph
+ceph_disks:
+  - vdb
+  - vdc
+  - vdd

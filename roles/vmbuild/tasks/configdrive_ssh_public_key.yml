@@ -1,0 +1,47 @@
+---
+- name: Check if the ssh public key is defined locally
+  local_action: stat path="{{ vm.build_ssh_public_key_path }}"
+  sudo: False
+  register: __build_ssh_public_key_path
+  when: >
+    vm.build_ssh_public_key_path is defined and
+    not vm.build_ssh_public_key_path is none
+
+- name: Read ssh public key locally
+  set_fact: _build_ssh_public_key="{{ lookup('file', vm.build_ssh_public_key_path) }}"
+  when: > 
+    vm.build_ssh_public_key_path is defined and
+    not vm.build_ssh_public_key_path is none and
+    __build_ssh_public_key_path.stat.exists == True
+
+- name: Check if the ssh public key is on the server
+  command: cat "{{ vm.build_ssh_public_key_path }}"
+  register: __build_ssh_public_key_path_remote
+  when: > 
+    vm.build_ssh_public_key_path is defined and
+    not vm.build_ssh_public_key_path is none and
+    __build_ssh_public_key_path.stat.exists == False
+  ignore_errors: yes
+
+- name: Read ssh public key on the server
+  set_fact: _build_ssh_public_key="{{ __build_ssh_public_key_path_remote.stdout }}"
+  when: > 
+    vm.build_ssh_public_key_path is defined and
+    not vm.build_ssh_public_key_path is none and
+    __build_ssh_public_key_path_remote|success  and
+    __build_ssh_public_key_path.stat.exists == False
+
+- name: Check if the ssh public key is readable
+  fail: msg="SSH keys defined in {{ vm.build_ssh_public_key_path }} not found!"
+  when: > 
+    vm.build_ssh_public_key_path is defined and
+    not vm.build_ssh_public_key_path is none and
+    not _build_ssh_public_key is defined
+    
+- name: Load file ssh public keys
+  set_fact: build_ssh_public_key="{{ _build_ssh_public_key }}"
+  when: >
+    _build_ssh_public_key is defined and
+    not _build_ssh_public_key is none
+
+

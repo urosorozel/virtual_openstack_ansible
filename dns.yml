@@ -1,0 +1,27 @@
+---
+- hosts: hypervisor
+  remote_user: root
+  vars:
+    #bind_config_listen_on: 10.184.227.134
+    #bind_nsupdate_secret: /99qNcV4r3JHlKa+joi1WfzrtnCMc/OML/Agb5VxdAc=
+    bind_config_master_forwarders: [ 8.8.8.8, 8.8.4.4 ]
+    bind_config_recursion: yes
+    bind_config_master_zones:
+    - name: rpc-cp-a.net
+      allow_update:
+        - key "nsupdate"
+    - name: rpc-cp-b.net
+      allow_update:
+        - key "nsupdate"
+    - name: rpc-cp-c.net
+      allow_update:
+        - key "nsupdate"
+    - name: rpc-cp-d.net
+      allow_update:
+        - key "nsupdate"
+    - name: rpc.net
+      allow_update:
+        - key "nsupdate"
+  roles:
+     - { role: resmo.bind }
+

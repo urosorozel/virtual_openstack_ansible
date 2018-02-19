@@ -1,0 +1,94 @@
+---
+- hosts: all
+  become: true
+
+  pre_tasks:
+  roles:
+    - role: .
+      vms:
+        - build_name: "host1"
+          build_cpu: 1
+          build_memory: 1024
+          build_disk: 20G
+          build_image: https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img
+          build_virtualization: "qemu"
+          build_os_family: "Debian"
+          build_uuid: "6ca2798d-2fd8-4c46-99be-cb2ea970c1d5"
+          build_fqdn: "host1.example.com"
+          build_ssh_public_key_path: "~/githome/ansible/build/files/id_rsa.pub"
+          build_config_user_data_path: "~/githome/ansible/build/files/user_data"
+          #build_ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDDDvavjyPB+HLO7Ed5ZQT0ALx3aZU7BkII3a6BWeBP0Y40n8+P3kiaaOolPCjA4xPh0iqFyLGtTB9NFuj2NKaoEqE6be/8BHmPX00bYx+7iaJWVCPJuMH0lnBjRQYLCUC6MbrgEdNaI+KH7FDCEn9xDlJLHMrhriKVky8WOI7HVimlTuSKnwntvvAO9sd9V7sE0QGWA1sIJ1+w/sIK6YjRfE5KdyjYN0l8XaBSvhg0rn4TvxrwuM0iNB7xNw1yMKiHRcygMXHJFTPevO0ftSYHd/9biqzr4njWuFaGxsSXDO528lXzaXHJFzLrjqDlaRsmExK58j1EOFg/383bh0Rv root@qemu"
+          build_network_info: True
+          build_vnc_enable: False
+          #build_vnc_password: "H4rdT0Gu355"
+          #build_vnc_port: 5910
+          build_resolv:
+            domain: "example.com"
+            search: "demo.example.com"
+            dns: ['8.8.8.8']
+          build_hosts:
+            - ['127.0.1.1', 'apphost1.domain.com']
+            - ['127.0.1.2', 'apphost2.domain.com']
+          build_network_device_list:
+            - device: "eth0"
+              host_net_dev: "virbr0"
+              bootproto: "dhcp"
+            - device: "eth1"
+              host_net_dev: "virbr0"
+              bootproto: "dhcp"
+            - device: "eth2:500"
+              host_net_dev: "virbr0"
+              type: vlan
+              bootproto: "static"
+              address: "10.1.1.10"
+              netmask: "255.255.255.0"
+              nameservers: 
+                - 8.8.8.8
+                - 9.9.9.9
+              domain: "domain.com"
+              backend: ["eth2"]
+          build_meta: {}
+
+        - build_name: "host2"
+          build_cpu: 1
+          build_memory: 1024
+          build_disk: 20G
+          build_image: https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img
+          build_virtualization: "qemu"
+          build_os_family: "Debian"
+          build_uuid: "338d9752-a26a-4678-b10a-fee64bff1da6"
+          build_fqdn: "host2.example.com"
+          build_ssh_public_key_path: "~/githome/ansible/build/files/id_rsa.pub"
+          build_config_user_data_path: "~/githome/ansible/build/files/user_data"
+          #build_ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDDDvavjyPB+HLO7Ed5ZQT0ALx3aZU7BkII3a6BWeBP0Y40n8+P3kiaaOolPCjA4xPh0iqFyLGtTB9NFuj2NKaoEqE6be/8BHmPX00bYx+7iaJWVCPJuMH0lnBjRQYLCUC6MbrgEdNaI+KH7FDCEn9xDlJLHMrhriKVky8WOI7HVimlTuSKnwntvvAO9sd9V7sE0QGWA1sIJ1+w/sIK6YjRfE5KdyjYN0l8XaBSvhg0rn4TvxrwuM0iNB7xNw1yMKiHRcygMXHJFTPevO0ftSYHd/9biqzr4njWuFaGxsSXDO528lXzaXHJFzLrjqDlaRsmExK58j1EOFg/383bh0Rv root@qemu"
+          build_network_info: True
+          build_vnc_enable: False
+          build_resolv:
+            domain: "example.com"
+            search: "demo.example.com"
+            dns: ['8.8.8.8']
+          build_hosts:
+            - ['127.0.1.1', 'apphost1.domain.com']
+            - ['127.0.1.2', 'apphost2.domain.com']
+          build_network_device_list:
+            - device: "eth0"
+              host_net_dev: "virbr0"
+              bootproto: "dhcp"
+            - device: "eth1" 
+              host_net_dev: "virbr0"
+              bootproto: "dhcp"
+            - device: "eth2:600"
+              host_net_dev: "virbr0"
+              type: vlan
+              bootproto: "static"
+              address: "10.2.1.10"
+              netmask: "255.255.255.0"
+              nameservers: 
+                - 8.8.8.8
+                - 9.9.9.9
+              domain: "domain.com"
+              backend: ["eth2"]
+          build_meta: {}
+#   - name: Display all variables/facts known for a host
+#     debug: var=hostvars[inventory_hostname]
+

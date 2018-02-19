@@ -1,0 +1,15 @@
+{% set domain = item.name %}
+; {{ ansible_managed }}
+;
+; zone file for {{ domain }}
+;
+$TTL    604800
+@       IN      SOA     ns.{{ domain }}. root.{{ domain }}. (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns.{{ domain }}.
+ns      IN      A       {{ bind_config_listen_on }}

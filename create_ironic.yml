@@ -1,0 +1,108 @@
+- name: Configure libvirt
+  hosts: hypervisor
+  user: root
+  tasks:
+
+    - name: Start Virtual machine
+      command: >
+        virt-install --name="{{ item.name }}"
+                     --vcpus="{{ item.cpu }}"
+                     --ram="{{ item.memory }}"
+                     --description="libvirt VM"
+                     --boot="hd,network,menu=on"
+                     --controller="type=scsi"
+                     --noautoconsole
+                     --graphics vnc,password="cobbler"
+                     --virt-type=kvm
+                     --os-type=linux
+        {% for dev in item.block_device_list %}
+                     --disk pool="{{ item.block_pool }},size={{ dev.block_size }},device=disk,sparse=true,format=qcow2"
+        {% endfor %}
+        {% for dev in item.network_device_list %}
+                     --network bridge="{{ dev.host_net_dev }}{% if dev.host_net_mac is defined %},mac={{ dev.host_net_mac }}{% endif %},model=virtio"
+        {% endfor %}
+      with_items: "{{ ironic_metal }}"
+      tags: create_ironic
+
+    - name: Install VirtualBMC package
+      pip:
+        name: "virtualbmc"
+        extra_args: "--isolated"
+    
+    - name: Create VirtualBMC directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0750
+        owner: root
+        group: root
+      with_items:
+        - "/etc/virtualbmc"
+        - "/var/log/virtualbmc"
+    
+    - name: Create VirtualBMC configuration file
+      copy:
+        mode: 0750
+        dest: "/etc/virtualbmc/virtualbmc.conf"
+        content: |
+          [default]
+          config_dir=/root/.vbmc
+          [log]
+          logfile=/var/log/virtualbmc/virtualbmc.log
+          debug=True
+          [ipmi]
+          session_timout=20
+
+ 
+    - name: Check vbmc IPs
+      shell: >
+        ip addr show {{ item.vbmc_bridge }} | grep {{ item.vbmc }} | wc -l
+      with_items: "{{ ironic_metal }}"
+      register: vm_ip_result
+
+    - name: Create virtual IP's
+      command: >
+        ip addr add {{ item.item.vbmc }}/32 dev {{ item.item.vbmc_bridge }}
+      with_items: "{{ vm_ip_result.results }}"
+      when: item.stdout|int == 0
+
+    
+    - name: Create the Virtual BMCs
+      command: "vbmc add --username ADMIN --password ADMIN --address={{ item.vbmc }} {{ item.name }}"
+      args:
+        creates: /root/.vbmc/{{ item.name }}/config
+      with_items: "{{ ironic_metal }}"
+    
+
+    - name: Create service dir
+      file:
+        path: /usr/lib/systemd/system
+        state: directory
+
+    - name: Create the VirtualBMC systemd service
+      copy:
+        mode: 0664
+        dest: "/usr/lib/systemd/system/virtualbmc@.service"
+        content: |
+          [Unit]
+          Description=VirtualBMC %i service
+          After=network.target
+          [Service]
+          Type=forking
+          PIDFile=/root/.vbmc/%i/pid
+          ExecStart=/usr/local/bin/vbmc start %i
+          ExecStop=/usr/local/bin/vbmc stop %i
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+   
+ 
+    - name: Start the Virtual BMCs
+      systemd:
+        name: "virtualbmc@{{ item.name }}"
+        state: started
+        daemon_reload: yes
+        enabled: true
+      with_items: "{{ ironic_metal }}"
+    
+    

@@ -1,0 +1,96 @@
+# OPENSTACK DEPLOY VARS
+Admin: cfarquhar
+Usernames:
+  swift_dispersion_user: acoe_zbi_dsp_cp0
+  glance_service_user_name: acoe_zbi_glance_cp0
+  heat_service_user_name: acoe_zbi_heat_cp0
+  ironic_service_user_name: acoe_zbi_ironic_cp0
+  keystone_admin_user_name: acoe_zbi_admin_cp0
+  keystone_service_user_name: acoe_zbi_ks_cp0
+  neutron_service_user_name: acoe_zbi_neutron_cp0
+  nova_service_user_name: acoe_zbi_nova_cp0
+  swift_service_user_name: acoe_zbi_swift_cp0
+  nova_placement_service_username: acoe_zbi_place_cp0
+Secrets:
+  glance_service_password: ZAQ!@#wsxZAQ
+  heat_service_password: ZAQ!@#wsxZAQ
+  ironic_service_password: ZAQ!@#wsxZAQ
+  keystone_auth_admin_password: ZAQ!@#wsxZAQ
+  keystone_service_password: ZAQ!@#wsxZAQ
+  neutron_service_password: ZAQ!@#wsxZAQ
+  nova_service_password: ZAQ!@#wsxZAQ
+  swift_dispersion_password: ZAQ!@#wsxZAQ
+  swift_service_password: ZAQ!@#wsxZAQ
+  nova_placement_service_password: ZAQ!@#wsxZAQ
+Profile: ceph
+Swift_mode: physical
+Haproxy_mode: distributed
+Openstack:
+  ironic:
+    cleaning_net: ironic_net
+    provisioning_net: ironic_net
+  networks:
+    container:
+      cidr_networks: 10.30.20.0/24
+      used_ips: 10.30.20.1,10.30.20.20
+    storage:
+      cidr_networks: 10.30.60.0/24
+      used_ips: 10.30.60.1,10.30.60.20
+    swift:
+      cidr_networks: 10.30.50.0/24
+      used_ips: 10.30.50.1,10.30.50.20
+    ironic:
+      cidr_networks: 10.30.40.0/24
+      used_ips: 10.30.40.1,10.30.40.19#10.30.40.50,10.30.40.255
+      gateway: 10.30.40.1
+    tunnel:
+      cidr_networks: 10.30.70.0/24
+      used_ips: 10.30.70.1,10.30.70.20
+HAproxy:
+  ssl_cert: ../config/PCLAB01/ssl/cloudext.rpc-cp-c.net.cert.pem
+  ssl_key: ../config/PCLAB01/ssl/cloudext.rpc-cp-c.net.key.pem
+  ca_cert: ../config/PCLAB01/ssl/ca-chain.cert.pem
+  nodes:
+  - hostname: vmhaproxy01-c
+    ip: 10.30.10.69
+  - hostname: vmhaproxy02-c
+    ip: 10.30.10.72
+Ironic:
+  range: 10.30.40.50,10.30.40.100
+  gateway: 10.30.40.1
+  cidr_network: 10.30.40.0/24
+  nameservers: 10.184.227.134
+  nodes:
+  - hostname: vmironic01-c
+    ipmi:
+      ipmi_pass: ADMIN
+      ipmi_user: ADMIN
+      ip: 10.30.10.105
+      mac: 0c:c4:7a:ae:d1:19
+    primary_mac: 0c:c4:7a:b6:2f:f1
+  - hostname: vmironic02-c
+    ipmi:
+      ipmi_pass: ADMIN
+      ipmi_user: ADMIN
+      ip: 10.30.10.106
+      mac: 0c:c4:7a:ae:d7:7c
+    primary_mac: 0c:c4:7a:b6:2f:f2
+State: Maintenance
+VIPs:
+  external_hostname: cloudext.rpc-cp-c.net
+  external_address: 10.130.10.3
+  external_router_id: 12
+  internal_hostname: 10.30.20.9
+  internal_address: 10.30.20.9
+  internal_router_id: 13
+Keystone:
+  ldap_url: ldap://windc01.rpc.net
+  ldap_ca_certificate: ldap-dev-ca.pem
+  ldap_user: CN=acoe_zbi_bind_cp0,OU=non-human,OU=cba,DC=rpc,DC=net
+  ldap_password: ZAQ!@#wsxZAQ
+  ldap_base_suffix: OU=cba,DC=rpc,DC=net
+  ldap_user_tree: OU=cba,DC=rpc,DC=net
+  ldap_user_filter: (&(objectClass=user)(|(memberOf=cn=acoe_zbi_os_member,ou=human,ou=cba,DC=rpc,DC=net)(memberOf=cn=acoe_zbi_os_nh_member,ou=non-human,ou=cba,DC=rpc,DC=net)))
+  ldap_group_tree: OU=cba,DC=rpc,DC=net
+  ldap_group_filter: (&(objectClass=group)(cn=acoe_zbi_os*))
+  ldap_ca_cert: ldap-dev-ca.pem

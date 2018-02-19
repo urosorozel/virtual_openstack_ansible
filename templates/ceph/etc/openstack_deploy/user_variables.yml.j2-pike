@@ -1,0 +1,77 @@
+---
+# Set glance to user Swift
+glance_default_store: swift
+glance_swift_store_auth_address: '{{ keystone_service_internalurl }}'
+glance_swift_store_container: glance_images
+glance_swift_store_endpoint_type: internalURL
+glance_swift_store_key: '{{ glance_service_password }}'
+glance_swift_store_region: RegionOne
+glance_swift_store_user: 'service:{{ glance_service_user_name }}'
+
+# Tempest
+tempest_swift_discoverable_apis:
+  - bulk
+  - object
+  - container_quotas
+  - slo
+  - tempurl
+tempest_swift_container_sync: False
+cirros_tgz_url: "http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-uec.tar.gz"
+cirros_img_url: "http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img"
+
+# Haproxy
+haproxy_use_keepalived: True
+haproxy_keepalived_external_vip_cidr: "10.120.10.3/32"
+haproxy_keepalived_internal_vip_cidr: "10.30.20.9/32"
+haproxy_keepalived_external_interface: ens3
+haproxy_keepalived_internal_interface: ens4
+keepalived_ping_address: 10.30.10.1
+haproxy_keepalived_external_virtual_router_id: 12
+haproxy_keepalived_internal_virtual_router_id: 13
+
+ironic_tftp_server_address: "{{ container_networks.ironic_address.address }}"
+ironic_openstack_driver_list:
+  - fake
+  - agent_ipmitool
+
+swift_swift3_enabled: true
+swift_reselleradmin_role: reseller_admin
+
+lxc_container_backing_store: dir
+
+galera_max_connections: 4000
+tempest_public_net_physical_type: "ironic"
+ldap_user_retrieval_delay: 180
+swift_rsync_module_per_drive: True
+
+tempest_public_net_physical_type: "ironic"
+keepalived_keyserver: 'hkp://keyserver.ubuntu.com:80'
+nova_quota_injected_file_content_bytes: 65000
+generate_fsid: false
+fsid: 116f14c4-7fe1-40e4-94eb-9240b63de5c1 # Replace with your generated UUID
+monitor_address_block: "{{ cidr_networks.container }}"
+public_network: "{{ cidr_networks.container }}"
+cluster_network: "{{ cidr_networks.storage }}"
+osd_scenario: collocated
+pool_default_pg_num: 32
+openstack_config: true # Ceph ansible automatically creates pools & keys
+cinder_ceph_client: cinder
+cinder_default_volume_type: RBD
+glance_ceph_client: glance
+glance_default_store: rbd
+glance_rbd_store_pool: images
+nova_libvirt_images_rbd_pool: vms
+devices:
+  - '/dev/sdb'
+  - '/dev/sdc'
+  - '/dev/sdd'
+cinder_backends:
+  RBD:
+    volume_driver: cinder.volume.drivers.rbd.RBDDriver
+    rbd_pool: volumes
+    rbd_ceph_conf: /etc/ceph/ceph.conf
+    rbd_store_chunk_size: 8
+    volume_backend_name: rbddriver
+    rbd_user: "{{ cinder_ceph_client }}"
+    rbd_secret_uuid: "{{ cinder_ceph_client_uuid }}"
+    report_discard_supported: true

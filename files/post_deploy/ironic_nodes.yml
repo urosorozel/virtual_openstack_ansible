@@ -1,0 +1,27 @@
+ironic_nodes:
+- name: ironic1
+  hardware_type: {model: qemu, cpus: 1, memory_mb: 1024, local_gb: 10, cpu_arch: x86_64}
+  ipmi_interface:
+    ip_address: 10.30.10.105 
+    mac_address: 
+    password: ADMIN
+    username: ADMIN
+  primary_interface:
+    interface_uuid:
+    mac_address: 0c:c4:7a:b6:2f:f1
+  node_uuid:
+  status: enabled
+  notes:
+- name: ironic2
+  hardware_type: {model: qemu, cpus: 1, memory_mb: 1024, local_gb: 10, cpu_arch: x86_64}
+  ipmi_interface:
+    ip_address: 10.30.10.105
+    mac_address:
+    password: ADMIN
+    username: ADMIN
+  primary_interface:
+    interface_uuid: 
+    mac_address: 0c:c4:7a:b6:2f:f2 
+  node_uuid:
+  status: enabled
+  notes:

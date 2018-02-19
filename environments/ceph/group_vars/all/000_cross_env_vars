@@ -1,0 +1,12 @@
+---
+### BEGIN: Misc. configuration
+
+# This is a list of domain names that should no be passed to the squid
+# proxy
+no_proxy: "localhost"
+
+deploy_maas: False
+deploy_cntlm: False
+
+CNTLM_Username: CNTLM_USERNAME
+CNTLM_PassNTLMv2: CNTLM_PASSWORD

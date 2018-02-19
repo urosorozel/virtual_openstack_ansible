@@ -1,0 +1,35 @@
+#!/bin/sh
+# example only
+echo "Export proxy"
+export http_proxy={{ http_proxy }}
+echo "adding default cloud user authorized_keys to root"
+cat /home/ubuntu/.ssh/authorized_keys > /root/.ssh/authorized_keys
+echo "enable ssh password login"
+sed -i 's|PasswordAuthentication no|PasswordAuthentication yes|g' /etc/ssh/sshd_config
+sed -i 's|PermitRootLogin without-password|PermitRootLogin yes|g' /etc/ssh/sshd_config
+echo "restaring sshd..."
+restart ssh
+echo "change root password for first run"
+echo "root:cobbler" | chpasswd
+echo "update nomodeset"
+sed -i 's|GRUB_CMDLINE_LINUX=""|GRUB_CMDLINE_LINUX="nomodeset"|g'  /etc/default/grub
+update-grub
+export https_proxy={{ http_proxy }}
+echo "Update cache"
+apt-get update
+echo "Installing python2 to support ansible"
+apt-get -y install python-simplejson
+echo "Disable cloud-init network"
+echo 'network: {config: disabled}' > /etc/network/interfaces.d/50-cloud-init.cfg
+rm /etc/network/interfaces.d/50-cloud-init.cfg
+
+#echo "Install packages"
+#apt-get install -y bridge-utils vtun
+#echo "Configure bridge"
+#interface=ens2
+#bridge=br-host
+#sed -i "s/^iface $interface inet \(.*\)$/iface $interface inet manual\n\nauto $bridge\niface $bridge inet \1/" /etc/network/interfaces
+#sed -i "/iface br-host/a bridge_ports $interface\nbridge_fd 9\nbridge_hello 2\nbridge_maxage 12\nbridge_stp off" /etc/network/interfaces
+#ip addr flush dev $interface
+#ifup $bridge
+

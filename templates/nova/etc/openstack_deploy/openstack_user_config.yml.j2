@@ -1,0 +1,174 @@
+---
+cidr_networks: &cidr_networks
+{% for key,value in Openstack.networks.iteritems() %}
+  {{key}}: {{value.cidr_networks}}
+{% endfor %}
+
+used_ips:
+{% for key,value in Openstack.networks.iteritems() %}
+{% set used=value.used_ips.split('#') %}
+{% for ips in used %}
+  - {{ ips }}
+{% endfor %}
+{% endfor %}
+
+
+global_overrides:
+  cidr_networks: *cidr_networks
+  #
+  # The below domain name must resolve to an IP address
+  # in the CIDR specified in haproxy_keepalived_external_vip_cidr.
+  # If using different protocols (https/http) for the public/internal
+  # endpoints the two addresses must be different.
+  #
+  internal_lb_vip_address: {{ VIPs['internal_hostname'] }}
+  external_lb_vip_address: {{ VIPs['external_hostname'] }}
+  tunnel_bridge: "br-vxlan"
+  management_bridge: "br-mgmt"
+  provider_networks:
+    - network:
+        container_bridge: "br-mgmt"
+        container_type: "veth"
+        container_interface: "eth1"
+        ip_from_q: "container"
+        type: "raw"
+        group_binds:
+          - all_containers
+          - hosts
+        is_container_address: true
+        is_ssh_address: true
+    - network:
+        container_bridge: "br-vxlan"
+        container_type: "veth"
+        container_interface: "eth10"
+        ip_from_q: "tunnel"
+        type: "vxlan"
+        range: "1:1000"
+        net_name: "vxlan"
+        group_binds:
+          - neutron_linuxbridge_agent
+    - network:
+        container_bridge: "br-vlan"
+        container_type: "veth"
+        container_interface: "eth12"
+        host_bind_override: "eth12"
+        type: "flat"
+        net_name: "flat"
+        group_binds:
+          - neutron_linuxbridge_agent
+    - network:
+        container_bridge: "br-vlan"
+        container_type: "veth"
+        container_interface: "eth11"
+        type: "vlan"
+        range: "1:1"
+        net_name: "vlan"
+        group_binds:
+          - neutron_linuxbridge_agent
+    - network:
+        group_binds:
+          - neutron_linuxbridge_agent
+          - ironic_conductor_container
+          - ironic_api_container        # api included so tftp override works
+        container_bridge: "br-ironic"
+        container_type: "veth"
+        container_interface: "eth13"
+        type: "flat"
+# This should really be called "host", but os_tempest hard codes it to "flat".
+        net_name: "ironic"
+        ip_from_q: "ironic"
+    - network:
+        container_bridge: "br-storage"
+        container_type: "veth"
+        container_interface: "eth2"
+        ip_from_q: "storage"
+        type: "raw"
+        group_binds:
+          - glance_api
+          - cinder_api
+          - cinder_volume
+          - nova_compute
+          - ceph-osd
+
+###
+### Infrastructure
+###
+
+_infrastructure_hosts: &infrastructure_hosts
+{% for host in groups.infra %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+
+compute_hosts: &compute_hosts
+{% for host in groups.compute %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+
+ceph-osd_hosts:
+{% for host in groups.ceph %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+
+# galera, memcache, rabbitmq, utility
+shared-infra_hosts: *infrastructure_hosts
+
+# ceph-mon containers
+ceph-mon_hosts: *infrastructure_hosts
+
+# repository (apt cache, python packages, etc)
+repo-infra_hosts: *infrastructure_hosts
+
+# load balancer
+# Ideally the load balancer should not use the Infrastructure hosts.
+# Dedicated hardware is best for improved performance and security.
+haproxy_hosts: *infrastructure_hosts
+
+# rsyslog server
+log_hosts:
+{% for host in groups.logging %}
+  {{ host }}:
+    ip: {{ hostvars[ host ].Networking.host.address }}
+{% endfor %}
+
+###
+### OpenStack
+###
+
+# keystone
+identity_hosts: *infrastructure_hosts
+
+# cinder api services
+storage-infra_hosts: *infrastructure_hosts
+
+# cinder volume hosts (Ceph RBD-backed)
+storage_hosts: *infrastructure_hosts
+
+# glance
+image_hosts: *infrastructure_hosts
+
+# nova api, conductor, etc services
+compute-infra_hosts: *infrastructure_hosts
+
+# heat
+orchestration_hosts: *infrastructure_hosts
+
+# horizon
+dashboard_hosts: *infrastructure_hosts
+
+# neutron server, agents (L3, etc)
+network_hosts: *infrastructure_hosts
+
+# ceilometer (telemetry data collection)
+metering-infra_hosts: *infrastructure_hosts
+
+# aodh (telemetry alarm service)
+metering-alarm_hosts: *infrastructure_hosts
+
+# gnocchi (telemetry metrics storage)
+metrics_hosts: *infrastructure_hosts
+
+# ceilometer compute agent (telemetry data collection)
+metering-compute_hosts: *compute_hosts

@@ -1,0 +1,10 @@
+lxc_container_fs_size: 3G # lower size to save space in virtual lab
+coreos_kernel_image_url: http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-stable-ocata.vmlinuz
+coreos_initrd_image_url: http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-stable-ocata.cpio.gz
+ironic_guest_image: https://stable.release.core-os.net/amd64-usr/current/coreos_production_openstack_image.img.bz2
+cirros_img_url: http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
+cirros_tgz_url: http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-uec.tar.gz
+ntp_server: 10.184.227.134
+haproxy_ssl: false
+openstack_ssl: false
+tempest_swift_container_sync: false

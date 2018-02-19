@@ -1,0 +1,98 @@
+---
+- name: Setup Minimal Swift
+  hosts: infra
+  remote_user: root
+  tags:
+    - object
+    - object_stand_alone
+  tasks:
+    - name: Install Necessary Base Packages
+      apt: pkg={{ item }} state=present update_cache=yes force=yes
+      with_items:
+        - xfsprogs
+        - parted
+
+    #- include: common-tasks/swift_on_x.yml
+    #  when: Swift_mode == "loop"
+
+    - name: Ensure '/openstack' directory exists
+      file:
+        dest: /openstack
+        state: directory
+
+    - name: Create sparse swift files
+      shell: "truncate -s 15G /openstack/{{ item }}.img"
+      args:
+        creates: "openstack/{{ item }}.img"
+      with_items:
+        - 'swift1'
+        - 'swift2'
+        - 'swift3'
+      register: swift_create
+      when: Swift_mode == "loop"
+
+    - name: Format the (loop) swift files
+      filesystem:
+        fstype: xfs
+        dev: "/openstack/{{ item }}.img"
+      when: swift_create | changed
+      with_items:
+        - 'swift1'
+        - 'swift2'
+        - 'swift3'
+      when: Swift_mode == "loop"
+
+    - name: Create the (loop) Swift mount points, fstab entries and mount the file systems
+      mount:
+        name: "/srv/{{ item }}.img"
+        src: "/openstack/{{ item }}.img"
+        fstype: xfs
+        opts: 'loop,noatime,nodiratime,nobarrier,logbufs=8,nofail'
+        passno: 0
+        dump: 0
+        state: mounted
+      with_items:
+        - 'swift1'
+        - 'swift2'
+        - 'swift3'
+      when: Swift_mode == "loop"
+
+    - debug: var=disks.swift
+
+    - name: Remove existing GPT partitions by writing MSDOS label
+      command: parted -a optimal --script "/dev/{{ item}}" mklabel msdos
+      with_items: "{{ disks.swift }}"
+      when: Swift_mode == "physical"
+      tags: data_disk
+
+    - name: Create partition
+      command: parted -a optimal --script "/dev/{{ item}}" mklabel gpt mkpart primary 2048s 100%
+      with_items: "{{ disks.swift }}"
+      when: Swift_mode == "physical"
+      tags: data_disk
+
+    - name: Format the (physical) swift disks
+      command: mkfs.xfs -f /dev/{{ item }}1
+      with_items: "{{ disks.swift }}"
+      when: Swift_mode == "physical"
+      tags: data_disk
+
+    - name: Get UUID of devices
+      command: blkid -o value -s UUID /dev/{{ item }}1
+      with_items: "{{ disks.swift }}"
+      register: disk_uuid
+      tags: data_disk
+
+    - name: Create the (physical) Swift mount points, fstab entries and mount the file systems
+      mount:
+        name: /srv/{{ item.item }}
+        src:  UUID={{ item.stdout_lines[0] }}
+        fstype: xfs
+        passno: 0
+        dump: 0
+        state: mounted
+        opts: 'noatime,nodiratime,nobarrier,logbufs=8,nofail'
+      with_items: "{{ disk_uuid.results }}"
+      when: Swift_mode == "physical"
+      tags: data_disk
+

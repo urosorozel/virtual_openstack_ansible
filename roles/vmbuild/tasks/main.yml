@@ -1,0 +1,43 @@
+---
+- name: Gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_version | lower }}.yml"
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version | lower }}.yml"
+    - "{{ ansible_os_family | lower }}-{{ ansible_distribution_major_version | lower }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_os_family | lower }}.yml"
+  tags:
+    - always
+
+#- name: Setup config drive instance folder
+#  set_fact: build_instance_dir="{{ build_name }}"
+#  when: build_instance_dir is not defined or build_instance_dir is none
+
+# Install required packages
+- include: install_apt.yml
+  static: no
+  when: ansible_pkg_mgr == 'apt'
+  tags:
+    - repo-apt-packages
+
+# Download Image 
+- include: download_image.yml
+  with_items: "{{ vms }}"
+  loop_control:
+    loop_var: vm
+
+# Generate config drive
+- include: configdrive.yml
+  with_items: "{{ vms }}"
+  loop_control:
+    loop_var: vm
+
+# Create virtual machine
+- include: create_virtual_machine.yml
+  with_items: "{{ vms }}"
+  loop_control:
+    loop_var: vm
+
+
+

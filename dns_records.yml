@@ -1,0 +1,14 @@
+- hosts: hypervisor
+  remote_user: root
+  tags: add_records
+  tasks:
+    - name: add A records
+      nsupdate:
+        server: "{{ bind_config_listen_on }}"
+        key_name: nsupdate
+        key_algorithm: hmac-sha256
+        key_secret: "{{ bind_nsupdate_secret }}"
+        zone: "{{ item.zone }}"
+        record: "{{ item.name }}"
+        value: "{{ item.ip }}"
+      with_items: "{{ dns_records }}"

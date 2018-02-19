@@ -1,0 +1,22 @@
+---
+
+- name: Ensure networking packages are installed
+  apt:
+    pkg={{ item }}
+    state=present
+  with_items:
+    - bridge-utils
+    - ifenslave-2.6
+    - vlan
+
+- name: Create the directory for interface backup files
+  file: path=/etc/network/interfaces.backup state=directory
+
+- name: Backup /etc/network/interfaces
+  shell: cp /etc/network/interfaces /etc/network/interfaces.backup/interfaces.$(date +"%m-%d-%Y_%H-%M-%S")
+
+- name: Debug 
+  debug: var=Networking
+
+- name: Create the network interface file
+  template: src={{ Networking.template }} dest=/etc/network/interfaces

@@ -1,0 +1,14 @@
+# this variable is here because vars files need to have at least ONE variable defined.
+this_file_is_reserved_for_support: True
+
+{% if maas_profile is defined and maas_profile != 'none' %}
+{% for key, value in maas_profiles[maas_profile].iteritems() %}
+{{ key }}: {{ value }}
+{% endfor %}
+maas_external_ip_address: "{{ VIPs['maas_external_ip_address'] | d(VIPs['external_hostname']) }}"
+{% endif %}
+
+{% if rpco_mirror_base_url is defined and rpco_mirror_base_url != 'none' %}
+rpco_mirror_base_url: "{{ rpco_artifacts_repo | d('http://rpc-repo.rackspace.com') }}"
+rpco_gpg_key_id: "{{ rpco_artifacts_repo_gpg }}"
+{% endif %}

@@ -1,0 +1,19 @@
+[hypervisor]
+hypervisor  ansible_connection=local
+
+[infra]
+infra01-c ansible_ssh_pass=cobbler ansible_host=10.30.10.78
+infra02-c ansible_ssh_pass=cobbler ansible_host=10.30.10.79
+infra03-c ansible_ssh_pass=cobbler ansible_host=10.30.10.80
+
+[logging]
+logging01-c ansible_ssh_pass=cobbler ansible_host=10.30.10.81
+
+[haproxy]
+haproxy01-c ansible_ssh_pass=cobbler ansible_host=10.30.10.69
+haproxy02-c ansible_ssh_pass=cobbler ansible_host=10.30.10.72
+
+[ceph_deploy:children]
+infra
+logging
+haproxy

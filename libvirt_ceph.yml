@@ -1,0 +1,68 @@
+---
+  - name: Configure libvirt
+    hosts: localhost
+    user: root
+    vars:
+      libvirt__networks:
+        - name: 'host_c'
+          type: 'dnsmasq_dns'
+          bridge: 'host_c'
+          addresses: [ '10.30.10.1/24' ]
+          dns:
+            dns_public_ip: 8.8.8.8
+            dns_domain_name: rpccpc.net
+            dns_private_ip: 10.184.227.134
+          forward: True
+          dhcp: False
+        - name: 'mgmt_c'
+          type: 'forward'
+          bridge: 'mgmt_c'
+          addresses: [ '10.30.20.1/24' ]
+          dhcp: False
+        - name: 'ironic_c'
+          type: 'forward'
+          bridge: 'ironic_c'
+          addresses: [ '10.30.40.1/24' ]
+          dhcp: False
+        - name: 'public_c'
+          type: 'forward'
+          bridge: 'public_c'
+          addresses: [ '10.130.10.1/24' ]
+          dhcp: False
+          dns:
+            dns_public_ip: 8.8.8.8
+            dns_domain_name: rpccpd.net
+            dns_private_ip: 10.184.227.134
+          forward: True
+          dhcp: False
+      iptable_rules:
+        - name: mgmt_c
+          route: 10.30.40.0/24
+        - name: ironic_c
+          route: 10.30.20.0/24
+      libvirt__pools:
+        - name: 'vgdata1'
+          type: 'dir'
+          path: '/data/vgdata1'
+        - name: 'vgdata2'
+          type: 'dir'
+          path: '/data/vgdata2'
+    roles:
+      - role: debops.libvirt
+
+    tasks:
+      - name: Add OUT interface iptable rules for ironic_x <> mgmt_x
+        iptables:
+          chain: FORWARD
+          out_interface: "{{item.name}}"
+          destination: "{{item.route}}"
+          jump: ACCEPT
+        with_items: "{{iptable_rules}}"
+
+      - name: Add IN interface iptable rules for ironic_x <> mgmt_x
+        iptables:
+          chain: FORWARD
+          in_interface: "{{item.name}}"
+          source: "{{item.route}}"
+          jump: ACCEPT
+        with_items: "{{iptable_rules}}"

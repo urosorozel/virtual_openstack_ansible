@@ -1,0 +1,32 @@
+---
+# Set the package install state for distribution packages
+# Options are 'present' and 'latest'
+build_package_state: "latest"
+## APT Cache Options
+cache_timeout: 600
+
+# Base directory for disks, images, scripts, isos
+build_base_dir: /openstack/libvirt
+# VM images
+build_image_dir: /openstack/libvirt/image
+# VM disk image dit
+build_disk_dir: /openstack/libvirt/disk
+build_disk_pool: pool_a
+# VM scripts dir
+build_script_dir: /openstack/libvirt/script
+# Temporary directory for ISO generate
+build_config_dir: "/openstack/libvirt/iso/config"
+build_iso_dir: "/openstack/libvirt/iso"
+# Delete the instace dir folder after creation
+build_config_dir_delete: True
+build_network_info: True
+# Automatically assigned with uuid
+#build_instance_dir:
+# Set proxy environment
+build_proxy: True
+build_proxy_list:
+#  http_proxy: http://10.33.33.40:3128
+#  https_proxy: http://10.33.33.40:3128
+#  HTTP_PROXY: http://10.33.33.40:3128
+#  HTTPS_PROXY: http://10.33.33.40:3128
+

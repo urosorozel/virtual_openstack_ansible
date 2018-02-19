@@ -1,0 +1,22 @@
+<network>
+  <name>{{ item.name }}</name>
+{% if item.uuid|d() %}
+  <uuid>{{ item.uuid }}</uuid>
+{% endif %}
+  <bridge name="{{ item.name }}" stp='off' delay='0' />
+{% if item.addresses|d() %}
+{% for subnet in item.addresses | ipv4('host/prefix') %}
+  <ip family="ipv4" address="{{ subnet | ipaddr('address') }}" netmask="{{ subnet | ipaddr('netmask') }}">
+{% if item.dhcp|d() and loop.first %}
+    <dhcp>
+{% if item.bootp|d() %}
+      <bootp file="{{ item.bootp_file | d('/undionly.kpxe') }}"{% if item.bootp_server|d() %} server="{{ item.bootp_server }}"{% endif %}/>
+{% endif %}
+      <range start="{{ subnet | ipaddr(libvirt__tpl_dhcp_range_start) | ipaddr('address') }}" end="{{ subnet | ipaddr(libvirt__tpl_dhcp_range_end) | ipaddr('address') }}"/>
+    </dhcp>
+{% endif %}
+  </ip>
+{% endfor %}
+{% endif %}
+  <forward mode="route" />
+</network>

@@ -1,0 +1,16 @@
+
+
+Networking:
+  bond_interfaces:
+  - name: bond0
+    mtu: 1500
+    nics:
+    - name: ens2
+      mtu: 1500
+  host:
+    dns_search: rpc-cp-c.net
+    gateway: 10.30.10.1
+    interface: ens2
+    nameservers: 10.184.227.134
+    address: 10.30.10.72
+    netmask: 255.255.255.0

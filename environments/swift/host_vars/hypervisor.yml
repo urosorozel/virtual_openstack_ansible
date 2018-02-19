@@ -1,0 +1,538 @@
+build_disk_dir: /data/vgdata1
+host_nameservers: 10.184.227.134
+dns_records:
+  - { name: util01-c, zone: rpc-cp-c.net, ip: 10.30.10.10 }
+  - { name: jenkins01-c, zone: rpc-cp-c.net, ip: 10.30.10.11 }
+  - { name: cobbler01-c, zone: rpc-cp-c.net, ip: 10.30.10.12 }
+  - { name: haproxy01-c, zone: rpc-cp-c.net, ip: 10.30.10.69 }
+  - { name: haproxy02-c, zone: rpc-cp-c.net, ip: 10.30.10.72 }
+  - { name: infra01-c, zone: rpc-cp-c.net, ip: 10.30.10.78 }
+  - { name: infra02-c, zone: rpc-cp-c.net, ip: 10.30.10.79 }
+  - { name: infra03-c, zone: rpc-cp-c.net, ip: 10.30.10.80 }
+  - { name: logging01-c, zone: rpc-cp-c.net, ip: 10.30.10.81 }
+  - { name: compute01-c, zone: rpc-cp-c.net, ip: 10.30.10.82 }
+  - { name: compute02-c, zone: rpc-cp-c.net, ip: 10.30.10.83 }
+  - { name: ceph01-c, zone: rpc-cp-c.net, ip: 10.30.10.84 }
+  - { name: ceph02-c, zone: rpc-cp-c.net, ip: 10.30.10.85 }
+  - { name: ceph03-c, zone: rpc-cp-c.net, ip: 10.30.10.86 }
+  - { name: cloudext, zone: rpc-cp-c.net, ip: 10.130.10.3 }
+  - { name: cloudint, zone: rpc-cp-c.net, ip: 10.30.20.9 }
+  - { name: windc01, zone: rpc.net, ip: 119.9.53.252 }
+blueprints:
+  - build_name: haproxy01-c
+    build_cpu: 2
+    build_memory: 2048
+    build_disk: 60G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: haproxy01-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.69
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: public_c
+      bootproto: static
+      address: 10.130.10.6
+      netmask: 255.255.255.0
+    - device: ens4
+      host_net_dev: mgmt_c
+      bootproto: static
+      address: 10.30.20.3
+      netmask: 255.255.255.0
+      route:
+      - network: 10.30.40.0/24
+        gateway: 10.30.20.1
+    build_meta: {}
+    block_device_list:
+    scenario:
+      - ceph
+      - nova
+      - swift
+  - build_name: haproxy02-c
+    build_cpu: 2
+    build_memory: 2048
+    build_disk: 60G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: haproxy02-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.72
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: public_c
+      bootproto: static
+      address: 10.130.10.7
+      netmask: 255.255.255.0
+    - device: ens4
+      host_net_dev: mgmt_c
+      bootproto: static
+      address: 10.30.20.4
+      netmask: 255.255.255.0
+      route:
+      - network: 10.30.40.0/24
+        gateway: 10.30.20.1
+    block_device_list:
+    build_meta: {}
+    scenario:
+      - ceph
+      - nova
+      - swift
+  - build_name: infra01-c
+    build_cpu: 6
+    build_memory: 16384 
+    build_disk: 100G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: infra01-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.78
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    - device: ens4
+      host_net_dev: ironic_c
+      bootproto: manual
+    block_device_list:
+    - device: vdb
+      block_size: 100
+      type: file
+    - device: vdc
+      block_size: 100
+      type: file
+    - device: vdd
+      block_size: 100
+      type: file
+    build_meta: {}
+    scenario:
+      - ceph
+      - nova
+      - swift
+  - build_name: infra02-c
+    build_cpu: 6
+    build_memory: 16384
+    build_disk: 100G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: infra02-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.79
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    - device: ens4
+      host_net_dev: ironic_c
+      bootproto: manual
+    block_device_list:
+    - device: vdb
+      block_size: 100
+      type: file
+    - device: vdc
+      block_size: 100
+      type: file
+    - device: vdd
+      block_size: 100
+      type: file
+    build_meta: {}
+    scenario:
+      - ceph
+      - nova
+      - swift
+  - build_name: infra03-c
+    build_cpu: 6
+    build_memory: 16384
+    build_disk: 100G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: infra03-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.80
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    - device: ens4
+      host_net_dev: ironic_c
+      bootproto: manual
+    block_device_list:
+    - device: vdb
+      block_size: 100
+      type: file
+    - device: vdc
+      block_size: 100
+      type: file
+    - device: vdd
+      block_size: 100
+      type: file
+    build_meta: {}
+    scenario:
+      - ceph
+      - nova
+      - swift
+  - build_name: logging01-c
+    build_cpu: 2
+    build_memory: 4096
+    build_disk: 60G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: logging01-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.81
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    block_device_list:
+    build_meta: {}
+    scenario:
+      - ceph
+      - nova
+      - swift
+  - build_name: compute01-c
+    build_cpu: 2
+    build_memory: 8192
+    build_disk: 60G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: compute01-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.82
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    - device: ens4
+      host_net_dev: ironic_c
+      bootproto: manual
+    block_device_list:
+    - device: vdb
+      block_size: 100
+      type: file
+    build_meta: {}
+    scenario:
+      - ceph
+      - nova
+  - build_name: compute02-c
+    build_cpu: 2
+    build_memory: 8192
+    build_disk: 60G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: compute02-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.83
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    - device: ens4
+      host_net_dev: ironic_c
+      bootproto: manual
+    block_device_list:
+    - device: vdb
+      block_size: 100
+      type: file
+    build_meta: {}
+    scenario:
+      - ceph
+      - nova
+  - build_name: ceph01-c
+    build_cpu: 2
+    build_memory: 8192
+    build_disk: 60G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: ceph01-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.84
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    block_device_list:
+    - device: vdb
+      block_size: 100
+      type: file
+    - device: vdc
+      block_size: 100
+      type: file
+    - device: vdd
+      block_size: 100
+      type: file
+    build_meta: {}
+    scenario:
+      - ceph
+  - build_name: ceph02-c
+    build_cpu: 2
+    build_memory: 8192
+    build_disk: 60G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: ceph02-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.85
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    block_device_list:
+    - device: vdb
+      block_size: 100
+      type: file
+    - device: vdc
+      block_size: 100
+      type: file
+    - device: vdd
+      block_size: 100
+      type: file
+    build_meta: {}
+    scenario:
+      - ceph
+  - build_name: ceph03-c
+    build_cpu: 2
+    build_memory: 8192
+    build_disk: 60G
+    build_disk_pool: vgdata1
+    build_image: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    build_virtualization: kvm
+    build_os_family: Debian
+    build_fqdn: ceph03-c
+    build_config_user_data_path: '{{ role_path}}/files/user_data'
+    build_ssh_public_key_path: ~/.ssh/id_rsa.pub
+    build_network_info: true
+    build_vnc_enable: false
+    build_resolv:
+    domain: rpc.prod.cba
+    search: rpc.prod.cba
+    dns: ['{{ host_nameservers }}']
+    build_network_device_list:
+    - device: ens2
+      host_net_dev: host_c
+      bootproto: static
+      address: 10.30.10.86
+      netmask: 255.255.255.0
+      gateway: 10.30.10.1
+      domain: rpc.prod.cba
+      nameservers:
+      - '{{ host_nameservers }}'
+    - device: ens3
+      host_net_dev: mgmt_c
+      bootproto: manual
+    block_device_list:
+    - device: vdb
+      block_size: 100
+      type: file
+    - device: vdc
+      block_size: 100
+      type: file
+    - device: vdd
+      block_size: 100
+      type: file
+    build_meta: {}
+    scenario:
+      - ceph
+
+ironic_metal:
+- name: ironic01-c
+  vbmc: 10.30.10.105
+  vbmc_bridge: host_c
+  cpu: 2
+  memory: 4096
+  virtualization: kvm
+  fqdn: ironic01-c
+  block_pool: vgdata1
+  network_device_list:
+  - device: eth0
+    host_net_dev: ironic_c
+    host_net_mac: 0c:c4:7a:b6:2f:f1
+  block_device_list:
+  - device: sda
+    block_size: 100
+    type: file
+- name: ironic02-c
+  vbmc: 10.30.10.106
+  vbmc_bridge: host_c
+  cpu: 2
+  memory: 4096
+  virtualization: kvm
+  fqdn: ironic02-c
+  block_pool: vgdata1
+  network_device_list:
+  - device: eth0
+    host_net_dev: ironic_c
+    host_net_mac: 0c:c4:7a:b6:2f:f2
+  block_device_list:
+  - device: sda
+    block_size: 100
+    type: file

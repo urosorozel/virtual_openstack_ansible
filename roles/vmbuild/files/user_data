@@ -1,0 +1,22 @@
+#!/bin/sh
+# example only
+echo "adding default cloud user authorized_keys to root"
+cat /home/ubuntu/.ssh/authorized_keys > /root/.ssh/authorized_keys
+echo "enable ssh password login"
+sed -i 's|PasswordAuthentication no|PasswordAuthentication yes|g' /etc/ssh/sshd_config
+sed -i '/PermitRootLogin / s/ .*/ yes/' /etc/ssh/sshd_config
+#sed -i 's|PermitRootLogin without-password|PermitRootLogin yes|g' /etc/ssh/sshd_config
+#sed -i 's|PermitRootLogin prohibit-password|PermitRootLogin yes|g' /etc/ssh/sshd_config
+echo "restaring sshd..."
+service ssh restart
+echo "change root password for first run"
+echo "root:cobbler" | chpasswd
+echo "update nomodeset"
+sed -i 's|GRUB_CMDLINE_LINUX=""|GRUB_CMDLINE_LINUX="nomodeset"|g'  /etc/default/grub
+update-grub
+echo "Disable cloud-init network"
+echo 'network: {config: disabled}' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+rm /etc/network/interfaces.d/50-cloud-init.cfg
+echo "Install python for ansible"
+apt -qqy update
+apt install -qqy python-minimal python2.7
